@@ -11,6 +11,8 @@ the court carry invented sponsors.
 
 [![Web build](https://github.com/totopoloco/badminton-game/actions/workflows/pages.yml/badge.svg)](https://github.com/totopoloco/badminton-game/actions/workflows/pages.yml)
 
+How the code fits together, with diagrams: [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Run it
 
 Needs Godot 4.3 or newer (standard build; the project uses the GL Compatibility
@@ -103,6 +105,7 @@ seats and colours are next to them.
 
 | Path | What it is |
 |---|---|
+| `ARCHITECTURE.md` | how the code fits together, with diagrams |
 | `project.godot`, `main.tscn` | project settings (192×108, pixel-perfect scaling) and the one scene |
 | `scripts/main.gd` | game flow, input, drawing, HUD, self-test mode |
 | `scripts/rally.gd` | rules of a rally: swings, contacts, the call |
