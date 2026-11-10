@@ -113,7 +113,7 @@ seats and colours are next to them.
 | `assets/` | sprite sheets + Aseprite JSON (players, shuttle, crowd), court layers, `rig.json` (racket contact points, where the crowd goes) |
 | `art/` | the drawing scripts (Python, through aseprite-mcp or Pillow) |
 | `export_presets.cfg` | build settings for the web, Linux and Windows versions |
-| `.github/workflows/pages.yml` | builds the web version and publishes it on GitHub Pages |
+| `.github/workflows/pages.yml` | builds the web version and publishes it on GitHub Pages and itch.io |
 | `tools/export.sh` | builds and zips all three versions (see below) |
 | `tools/sim.py` | Python model of the same rules and CPU, used to tune `config.gd` |
 
@@ -121,12 +121,12 @@ seats and colours are next to them.
 
 **GitHub Pages (automatic).** Every push to `master` builds the web version on
 GitHub Actions with Godot 4.7.2 (`.github/workflows/pages.yml`) and publishes it
-at https://totopoloco.github.io/badminton-game/ a few minutes later; the run is
+at https://totopoloco.github.io/badminton-game/ about a minute later; the run is
 under the repository's *Actions* tab. One-time setup on GitHub: *Settings →
 Pages → Build and deployment → Source: GitHub Actions*.
 
-**By hand.** `tools/export.sh` builds three versions and zips each one in
-`~/badminton/dist/` (the `dist` folder next to the project folder):
+**By hand.** `tools/export.sh` builds three versions and zips each one in the
+`dist` folder next to the project folder (`../dist`):
 
 | Zip | What's inside |
 |---|---|
@@ -154,11 +154,25 @@ Opening `index.html` straight from disk doesn't work; it has to be served,
 which is what `serve` does. F11 is the browser's own key there; on itch.io use
 the page's fullscreen button.
 
-**On itch.io** (free): *Create new project*, *Kind of project: HTML*, upload
-`badminton-web.zip` and tick *This file will be played in the browser*, set the
-viewport to 960 × 540 and enable the fullscreen button. The Linux and Windows
-zips can go on the same page as downloads. Windows shows a SmartScreen warning
-for unsigned games (*More info → Run anyway*).
+**On itch.io (automatic after a one-time setup).** The workflow's *itch* job
+uploads every web build to an itch.io page with butler, itch.io's upload tool,
+on the channel `html5`:
+
+1. On itch.io, *Dashboard → Create new project*: title *Badminton*, *Kind of
+   project: HTML*, and under *Embed options* a viewport of 960 × 540 with
+   *Fullscreen button* on and *Mobile friendly* off. Save it as a draft; it
+   needs no upload.
+2. On GitHub, *Settings → Secrets and variables → Actions*: a repository secret
+   `ITCH_IO_SECRET` holding an itch.io API key (*itch.io → Settings → API
+   keys*), and on the *Variables* tab a variable `ITCH_GAME` with the page's
+   `user/project`, for example `yourname/badminton`.
+3. Push. When the *itch* job has finished, open *Edit game* on itch.io, tick
+   *This file will be played in the browser* for the `html5` upload, save, and
+   make the page public when you like. Later pushes replace that upload.
+
+Without `ITCH_GAME` the job is skipped. The Linux and Windows zips can go on
+the same page as downloads; Windows shows a SmartScreen warning for unsigned
+games (*More info → Run anyway*).
 
 **Godot's license.** Godot is MIT licensed, free also for commercial games; it
 asks that its notice ships with the game. Exported builds print it at startup

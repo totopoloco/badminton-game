@@ -1,6 +1,10 @@
-# Builds the web version with Godot and publishes it on GitHub Pages.
+# Builds the web version with Godot and publishes it on GitHub Pages, and on
+# itch.io when that is set up.
 # One-time setup on GitHub: Settings > Pages > Build and deployment > Source: GitHub Actions.
-name: Web build to GitHub Pages
+# For itch.io (optional): Settings > Secrets and variables > Actions, a secret
+# ITCH_IO_SECRET (an itch.io API key) and a variable ITCH_GAME (the page's
+# user/project, e.g. yourname/badminton). Without ITCH_GAME the itch job is skipped.
+name: Web build to GitHub Pages and itch.io
 
 on:
   push:
@@ -57,7 +61,7 @@ jobs:
           "$godot" --headless --path . --import
           "$godot" --headless --path . --export-release "Web" "$out/index.html"
           "$godot" --headless --path . -- --licenses="$out/GODOT_LICENSES.txt"
-          test -s "$out/index.wasm" && test -s "$out/index.pck" && test -s "$out/GODOT_LICENSES.txt"
+          for f in index.html index.wasm index.pck GODOT_LICENSES.txt; do test -s "$out/$f"; done
           ls -la "$out"
 
       - uses: actions/configure-pages@v5
@@ -76,3 +80,37 @@ jobs:
       - name: Publish on GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  itch:
+    needs: build
+    if: vars.ITCH_GAME != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Get the web build
+        uses: actions/download-artifact@v8
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/artifact
+
+      - name: Push it to itch.io with butler
+        env:
+          BUTLER_API_KEY: ${{ secrets.ITCH_IO_SECRET }}
+          ITCH_GAME: ${{ vars.ITCH_GAME }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "::error::Missing secret ITCH_IO_SECRET (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          web="$RUNNER_TEMP/web"
+          mkdir -p "$web" "$RUNNER_TEMP/butler"
+          tar -xf "$RUNNER_TEMP/artifact/artifact.tar" -C "$web"
+          for f in index.html index.wasm index.pck; do test -s "$web/$f"; done
+          curl -fsSL -o "$RUNNER_TEMP/butler.zip" https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q "$RUNNER_TEMP/butler.zip" -d "$RUNNER_TEMP/butler"
+          butler="$RUNNER_TEMP/butler/butler"
+          chmod +x "$butler"
+          "$butler" version
+          # html5 channel; the upload is marked "played in the browser" once on itch.io
+          "$butler" push "$web" "$ITCH_GAME:html5" --userversion "${GITHUB_SHA::7}" --if-changed
