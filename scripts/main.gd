@@ -34,6 +34,7 @@ const COL_FLASH_SOFT := Color("#fff6c890")
 const COL_DUST := Color("#e3d6c2a0")
 const COL_PANEL := Color("#0d111de0")
 const COL_MARK := Color("#fff2a0a0")
+const COL_POINTER := Color("#eef0e690")   # where the mouse sends the player
 const CALLS := {"IN": "IN!", "OUT": "OUT", "NET": "NET", "SHORT": "SHORT SERVE", "FAULT": "SERVICE FAULT"}
 const LEVEL_NAMES := ["EASY", "NORMAL", "HARD"]
 
@@ -81,6 +82,8 @@ var land_hop := 0
 var land_dir := 1.0
 var paused := false
 var show_keys := true               # the controls bar under the court (H toggles it)
+var mouse_on := false               # the player runs to the mouse pointer (moving the mouse turns
+var mouse_travel := 0.0             # it on during play, an arrow key turns it off)
 var toast := ""                     # a short note at the top, e.g. "CROWD SOUND OFF"
 var toast_t := 0
 var ok := true
@@ -110,6 +113,7 @@ func _ready() -> void:
 	if not seeded:
 		rng.randomize()
 	_setup_input()
+	get_window().mouse_exited.connect(_mouse_off)
 	sfx = Sfx.new()
 	add_child(sfx)
 	if not _load_assets():
@@ -267,6 +271,7 @@ func _to_title() -> void:
 	state_t = 0
 	rally = null
 	crowd_cheer = 0
+	_mouse_off()
 	for side in 2:
 		players[side].reset(Vector2(C.NET_X - players[side].f * C.HOME_U, 0.0))
 
@@ -426,8 +431,12 @@ func _title_tick() -> void:
 
 func _human_input(allow_shots: bool) -> void:
 	var pl = players[human]
-	pl.move_x = Input.get_axis("left", "right")
-	pl.move_y = Input.get_axis("up", "down")
+	var keys := Vector2(Input.get_axis("left", "right"), Input.get_axis("up", "down"))
+	if keys != Vector2.ZERO:
+		_mouse_off()                               # an arrow key (or the gamepad) takes over
+	var m: Vector2 = _mouse_move(pl) if mouse_on else keys
+	pl.move_x = m.x
+	pl.move_y = m.y
 	if Input.is_action_just_pressed("jump") and pl.jump():
 		sfx.play("swing", -18.0, 0.7)
 	if not allow_shots:
@@ -438,6 +447,37 @@ func _human_input(allow_shots: bool) -> void:
 			if rally.press(human, b, "", "", aim_x, pl.move_y):
 				sfx.play("swing", -12.0)
 			break
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	## Moving the mouse during play hands the running to the mouse.
+	if event is InputEventMouseMotion and human >= 0 and not auto and state != St.TITLE:
+		mouse_travel += event.relative.length()    # in game pixels
+		if mouse_travel >= 2.0:
+			mouse_on = true
+
+
+func _mouse_off() -> void:
+	mouse_on = false
+	mouse_travel = 0.0
+
+
+func _mouse_target(pl) -> Vector2:
+	## The floor point under the mouse pointer, kept inside the player's half.
+	var m := get_global_mouse_position()
+	var lim: Vector2 = pl.x_limits()
+	var x := m.x - (C.GROUND - m.y) * C.SKEW       # C.screen() backwards, at height 0
+	var y := (m.y - C.ROW_C) / C.ROW_K
+	return Vector2(clampf(x, lim.x, lim.y), clampf(y, -C.Y_LIM, C.Y_LIM))
+
+
+func _mouse_move(pl) -> Vector2:
+	## Run towards the pointer, slowing down over the last few pixels.
+	var d := _mouse_target(pl) - Vector2(pl.x, pl.y)
+	var dist := d.length()
+	if dist <= 0.5:
+		return Vector2.ZERO
+	return d * (minf(1.0, dist / 6.0) / dist)
 
 
 func _serve_tick() -> void:
@@ -765,6 +805,14 @@ func _draw_shadows() -> void:
 		var w := 2 if rally.s.z < 25.0 else 1
 		for x in range(roundi(fp.x) - w, roundi(fp.x) + w + 1):
 			ci.draw_rect(Rect2(x, roundf(fp.y) + 1.0, 1, 1), COL_SHADOW)
+	if mouse_on and (state == St.RALLY or (state == St.SERVE and server != human)):
+		var pl = players[human]
+		var t := _mouse_target(pl)
+		if t.distance_to(Vector2(pl.x, pl.y)) > 2.0:
+			var tp := C.screen(t.x, t.y, 0.0)
+			for d in [Vector2(-2, 0), Vector2(2, 0), Vector2(-1, -1), Vector2(1, -1),
+					Vector2(-1, 1), Vector2(1, 1)]:                # a small ring on the floor
+				_px(ci, tp.x + d.x, tp.y + d.y, COL_POINTER)
 	if mark_on and state == St.RALLY:
 		var m := C.screen(land_mark.x, land_mark.y, 0.0)
 		for d in [Vector2(-2, 1), Vector2(2, 1), Vector2(-1, 0), Vector2(1, 0), Vector2(-1, 2), Vector2(1, 2)]:
@@ -947,7 +995,8 @@ func _draw_toast(ci: CanvasItem) -> void:
 func _draw_keys(ci: CanvasItem) -> void:
 	## One line of keyboard controls on the floor strip below the court (rows
 	## 99-107, which no player, shadow or shuttle reaches); keys in gold.
-	var pairs := [["←↑↓→", "MOVE"], ["1", "JUMP"], ["2", "CLEAR"], ["3", "DROP"], ["4", "SMASH"]]
+	var pairs := [["MOUSE" if mouse_on else "←↑↓→", "MOVE"], ["1", "JUMP"], ["2", "CLEAR"],
+			["3", "DROP"], ["4", "SMASH"]]
 	if state == St.SERVE and server == human:
 		pairs = [["2", "HIGH SERVE"], ["3", "SHORT SERVE"], ["←↑↓→", "AIM"]]
 	var parts: Array = []
@@ -977,5 +1026,5 @@ func _draw_title(ci: CanvasItem) -> void:
 		if i == menu_row:
 			PixelFont.draw(ci, Vector2(40, 37.0 + i * 7.0), ">", COL_GOLD)
 	ci.draw_rect(Rect2(10, 92, 172, 15), COL_PANEL)
-	PixelFont.draw_centered(ci, 96.0, 94.0, "ARROWS MOVE   ENTER START", COL_TEXT)
+	PixelFont.draw_centered(ci, 96.0, 94.0, "ARROWS/MOUSE MOVE   ENTER START", COL_TEXT)
 	PixelFont.draw_centered(ci, 96.0, 101.0, "1 JUMP   2 CLEAR   3 DROP   4 SMASH", COL_TEXT)

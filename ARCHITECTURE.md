@@ -216,7 +216,7 @@ sequenceDiagram
     participant CPU as cpu.gd, other side
 
     You->>Main: press 2 (clear) as the shuttle comes
-    Main->>Rally: press(you, clear, aim from the arrow keys)
+    Main->>Rally: press(you, clear, aim from the way you move)
     Rally->>Player: arm a swing, wait up to 0.35 s
     loop every tick until the racket meets the shuttle
         Main->>Rally: contacts()
@@ -309,7 +309,7 @@ the same web version, plus Linux and Windows, on your own machine (see the
 
 | To change | Look in |
 |---|---|
-| Keys | `_setup_input()` in `main.gd`, and the hints in `_draw_keys()` and `_draw_title()` |
+| Keys and mouse | `_setup_input()`, `_human_input()` and the `_mouse_…` functions in `main.gd`; the hints in `_draw_keys()` and `_draw_title()` |
 | Speeds, shots, gravity, computer levels | `config.gd` (tuned with `tools/sim.py`, which uses the same names) |
 | Rules and calls | `decide()` in `rally.gd`, and `score.gd` |
 | How the computer plays | `cpu.gd`, and `LEVELS` in `config.gd` |

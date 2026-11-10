@@ -32,8 +32,8 @@ pause screen also shows whether sound and crowd are on). To share the game or pl
 
 | | Keyboard | Gamepad |
 |---|---|---|
-| Move along the court | ← / → | left stick or D-pad |
-| Move across the court | ↑ / ↓ | left stick or D-pad |
+| Move along the court | ← / → (or the mouse, see below) | left stick or D-pad |
+| Move across the court | ↑ / ↓ (or the mouse) | left stick or D-pad |
 | Jump | 1 (or Space) | Y or RB |
 | Clear / lift | 2 (or Z) | A |
 | Drop / net shot | 3 (or X) | X |
@@ -44,6 +44,13 @@ pause screen also shows whether sound and crowd are on). To share the game or pl
 1 to 4 are the number keys above the letters (not the numeric keypad), so one
 hand plays the shots while the other moves. They go by key position, so they work
 with any keyboard layout. Space, Z, X and C do the same as 1, 2, 3 and 4.
+
+**Mouse.** Move the mouse during a match and your player runs to the spot on
+the floor under the pointer; a small white ring shows where they will stop
+(they stay in their own half), and the keys bar says *MOUSE MOVE*. Press an
+arrow key to go back to the keys. Jump and hit with the number keys as usual:
+the direction you're running when you hit aims the shot, as with the arrows.
+Serves are aimed with the arrow keys.
 
 How a swing works:
 
