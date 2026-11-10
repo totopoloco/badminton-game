@@ -32,15 +32,16 @@ pause screen also shows whether sound and crowd are on). To share the game or pl
 |---|---|---|
 | Move along the court | ← / → | left stick or D-pad |
 | Move across the court | ↑ / ↓ | left stick or D-pad |
-| Jump | F1 (or Space) | Y or RB |
-| Clear / lift | F2 (or Z) | A |
-| Drop / net shot | F3 (or X) | X |
-| Smash / drive / kill | F4 (or C) | B |
-| Serve | F2 = high serve, F3 = short serve | A / X |
+| Jump | 1 (or Space) | Y or RB |
+| Clear / lift | 2 (or Z) | A |
+| Drop / net shot | 3 (or X) | X |
+| Smash / drive / kill | 4 (or C) | B |
+| Serve | 2 = high serve, 3 = short serve | A / X |
 | Menu | ↑ / ↓ to choose, ← / → to change, Enter to start | D-pad, Start |
 
-Space, Z, X and C do the same as F1, F2, F3 and F4, for keyboards where the F
-keys are volume or brightness keys unless you hold Fn (many laptops, Macs).
+1 to 4 are the number keys above the letters (not the numeric keypad), so one
+hand plays the shots while the other moves. They go by key position, so they work
+with any keyboard layout. Space, Z, X and C do the same as 1, 2, 3 and 4.
 
 How a swing works:
 
@@ -54,7 +55,7 @@ How a swing works:
   deeper; up = towards the far sideline, down = towards the near one.
 - You can reach a little further sideways than forwards, but wide shots still
   need footwork.
-- **Jump smash:** jump (F1) under a high shuttle and press F4 in the air.
+- **Jump smash:** jump (1) under a high shuttle and press 4 in the air.
   Jumps go straight up, so get under the shuttle first.
 - On Easy and Normal a small yellow mark shows where the computer's shot will
   land, so you can leave shuttles that are going out.
@@ -148,7 +149,7 @@ The script uses `~/Downloads/Godot/Godot_v4.7.2-stable_linux.x86_64`; set
 so it needs no special server headers and works on any static host: itch.io,
 GitHub Pages, Netlify. Players need a desktop browser and a keyboard or gamepad
 (there are no touch controls), and they click the game once so it has the
-keyboard; from then on F1-F4 go to the game, not to the browser's help and find.
+keyboard.
 Opening `index.html` straight from disk doesn't work; it has to be served,
 which is what `serve` does. F11 is the browser's own key there; on itch.io use
 the page's fullscreen button.

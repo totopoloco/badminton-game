@@ -156,12 +156,12 @@ func _setup_input() -> void:
 	_bind("right", [KEY_RIGHT], [JOY_BUTTON_DPAD_RIGHT], [[JOY_AXIS_LEFT_X, 1.0]])
 	_bind("up", [KEY_UP], [JOY_BUTTON_DPAD_UP], [[JOY_AXIS_LEFT_Y, -1.0]])
 	_bind("down", [KEY_DOWN], [JOY_BUTTON_DPAD_DOWN], [[JOY_AXIS_LEFT_Y, 1.0]])
-	# F1 jumps, F2-F4 hit; Space and Z/X/C do the same for keyboards where the
-	# F keys are media keys (many laptops, Macs)
-	_bind("jump", [KEY_F1, KEY_SPACE], [JOY_BUTTON_Y, JOY_BUTTON_RIGHT_SHOULDER], [])
-	_bind("clear", [KEY_F2, KEY_Z], [JOY_BUTTON_A], [])
-	_bind("drop", [KEY_F3, KEY_X], [JOY_BUTTON_X], [])
-	_bind("smash", [KEY_F4, KEY_C], [JOY_BUTTON_B], [])
+	# 1 jumps, 2-4 hit: the number keys above the letters, matched by position,
+	# so they work with any keyboard layout. Space and Z/X/C do the same.
+	_bind("jump", [KEY_1, KEY_SPACE], [JOY_BUTTON_Y, JOY_BUTTON_RIGHT_SHOULDER], [])
+	_bind("clear", [KEY_2, KEY_Z], [JOY_BUTTON_A], [])
+	_bind("drop", [KEY_3, KEY_X], [JOY_BUTTON_X], [])
+	_bind("smash", [KEY_4, KEY_C], [JOY_BUTTON_B], [])
 	_bind("start", [KEY_ENTER, KEY_KP_ENTER], [JOY_BUTTON_START], [])
 	_bind("pause", [KEY_ESCAPE, KEY_P], [JOY_BUTTON_START], [])
 	_bind("back", [KEY_Q, KEY_BACKSPACE], [JOY_BUTTON_BACK], [])
@@ -905,7 +905,7 @@ func _draw_hud() -> void:
 			if sub != "":
 				_box(ci, [sub], 30.0, [COL_GOLD])
 			if server == human and state_t > 10 and not show_keys:
-				PixelFont.draw_centered(ci, 96.0, 100.0, "F2 HIGH SERVE   F3 SHORT SERVE", COL_TEXT, 1, COL_INK)
+				PixelFont.draw_centered(ci, 96.0, 100.0, "2 HIGH SERVE   3 SHORT SERVE", COL_TEXT, 1, COL_INK)
 		St.POINT:
 			var who := _side_name(winner)
 			_box(ci, [call_text, "%s %d-%d" % ["POINT " + who, score.points[0], score.points[1]]], 28.0,
@@ -947,9 +947,9 @@ func _draw_toast(ci: CanvasItem) -> void:
 func _draw_keys(ci: CanvasItem) -> void:
 	## One line of keyboard controls on the floor strip below the court (rows
 	## 99-107, which no player, shadow or shuttle reaches); keys in gold.
-	var pairs := [["←↑↓→", "MOVE"], ["F1", "JUMP"], ["F2", "CLEAR"], ["F3", "DROP"], ["F4", "SMASH"]]
+	var pairs := [["←↑↓→", "MOVE"], ["1", "JUMP"], ["2", "CLEAR"], ["3", "DROP"], ["4", "SMASH"]]
 	if state == St.SERVE and server == human:
-		pairs = [["F2", "HIGH SERVE"], ["F3", "SHORT SERVE"], ["←↑↓→", "AIM"]]
+		pairs = [["2", "HIGH SERVE"], ["3", "SHORT SERVE"], ["←↑↓→", "AIM"]]
 	var parts: Array = []
 	for pr in pairs:
 		parts.append("%s %s" % [pr[0], pr[1]])
@@ -978,4 +978,4 @@ func _draw_title(ci: CanvasItem) -> void:
 			PixelFont.draw(ci, Vector2(40, 37.0 + i * 7.0), ">", COL_GOLD)
 	ci.draw_rect(Rect2(10, 92, 172, 15), COL_PANEL)
 	PixelFont.draw_centered(ci, 96.0, 94.0, "ARROWS MOVE   ENTER START", COL_TEXT)
-	PixelFont.draw_centered(ci, 96.0, 101.0, "F1 JUMP   F2 CLEAR   F3 DROP   F4 SMASH", COL_TEXT)
+	PixelFont.draw_centered(ci, 96.0, 101.0, "1 JUMP   2 CLEAR   3 DROP   4 SMASH", COL_TEXT)
