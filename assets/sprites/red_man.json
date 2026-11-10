@@ -1,0 +1,686 @@
+{
+ "frames": [
+  {
+   "filename": "red_man 0.aseprite",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 260
+  },
+  {
+   "filename": "red_man 1.aseprite",
+   "frame": {
+    "x": 53,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 260
+  },
+  {
+   "filename": "red_man 2.aseprite",
+   "frame": {
+    "x": 106,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 300
+  },
+  {
+   "filename": "red_man 3.aseprite",
+   "frame": {
+    "x": 159,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 300
+  },
+  {
+   "filename": "red_man 4.aseprite",
+   "frame": {
+    "x": 212,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 110
+  },
+  {
+   "filename": "red_man 5.aseprite",
+   "frame": {
+    "x": 265,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 110
+  },
+  {
+   "filename": "red_man 6.aseprite",
+   "frame": {
+    "x": 318,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 120
+  },
+  {
+   "filename": "red_man 7.aseprite",
+   "frame": {
+    "x": 371,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 120
+  },
+  {
+   "filename": "red_man 8.aseprite",
+   "frame": {
+    "x": 424,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 90
+  },
+  {
+   "filename": "red_man 9.aseprite",
+   "frame": {
+    "x": 477,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 120
+  },
+  {
+   "filename": "red_man 10.aseprite",
+   "frame": {
+    "x": 530,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 60
+  },
+  {
+   "filename": "red_man 11.aseprite",
+   "frame": {
+    "x": 583,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 90
+  },
+  {
+   "filename": "red_man 12.aseprite",
+   "frame": {
+    "x": 636,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 200
+  },
+  {
+   "filename": "red_man 13.aseprite",
+   "frame": {
+    "x": 689,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 120
+  },
+  {
+   "filename": "red_man 14.aseprite",
+   "frame": {
+    "x": 742,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 70
+  },
+  {
+   "filename": "red_man 15.aseprite",
+   "frame": {
+    "x": 795,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 70
+  },
+  {
+   "filename": "red_man 16.aseprite",
+   "frame": {
+    "x": 848,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 50
+  },
+  {
+   "filename": "red_man 17.aseprite",
+   "frame": {
+    "x": 901,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 18.aseprite",
+   "frame": {
+    "x": 954,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 130
+  },
+  {
+   "filename": "red_man 19.aseprite",
+   "frame": {
+    "x": 1007,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 120
+  },
+  {
+   "filename": "red_man 20.aseprite",
+   "frame": {
+    "x": 1060,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 60
+  },
+  {
+   "filename": "red_man 21.aseprite",
+   "frame": {
+    "x": 1113,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 50
+  },
+  {
+   "filename": "red_man 22.aseprite",
+   "frame": {
+    "x": 1166,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 23.aseprite",
+   "frame": {
+    "x": 1219,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 160
+  },
+  {
+   "filename": "red_man 24.aseprite",
+   "frame": {
+    "x": 1272,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 150
+  },
+  {
+   "filename": "red_man 25.aseprite",
+   "frame": {
+    "x": 1325,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 60
+  },
+  {
+   "filename": "red_man 26.aseprite",
+   "frame": {
+    "x": 1378,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 50
+  },
+  {
+   "filename": "red_man 27.aseprite",
+   "frame": {
+    "x": 1431,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 28.aseprite",
+   "frame": {
+    "x": 1484,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 120
+  },
+  {
+   "filename": "red_man 29.aseprite",
+   "frame": {
+    "x": 1537,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 120
+  },
+  {
+   "filename": "red_man 30.aseprite",
+   "frame": {
+    "x": 1590,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 31.aseprite",
+   "frame": {
+    "x": 1643,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 32.aseprite",
+   "frame": {
+    "x": 1696,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 140
+  },
+  {
+   "filename": "red_man 33.aseprite",
+   "frame": {
+    "x": 1749,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 70
+  },
+  {
+   "filename": "red_man 34.aseprite",
+   "frame": {
+    "x": 1802,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 35.aseprite",
+   "frame": {
+    "x": 1855,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 140
+  },
+  {
+   "filename": "red_man 36.aseprite",
+   "frame": {
+    "x": 1908,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 70
+  },
+  {
+   "filename": "red_man 37.aseprite",
+   "frame": {
+    "x": 1961,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 70
+  },
+  {
+   "filename": "red_man 38.aseprite",
+   "frame": {
+    "x": 2014,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 90
+  },
+  {
+   "filename": "red_man 39.aseprite",
+   "frame": {
+    "x": 2067,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 160
+  },
+  {
+   "filename": "red_man 40.aseprite",
+   "frame": {
+    "x": 2120,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 70
+  },
+  {
+   "filename": "red_man 41.aseprite",
+   "frame": {
+    "x": 2173,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 70
+  },
+  {
+   "filename": "red_man 42.aseprite",
+   "frame": {
+    "x": 2226,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 43.aseprite",
+   "frame": {
+    "x": 2279,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 160
+  },
+  {
+   "filename": "red_man 44.aseprite",
+   "frame": {
+    "x": 2332,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 400
+  },
+  {
+   "filename": "red_man 45.aseprite",
+   "frame": {
+    "x": 2385,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 110
+  },
+  {
+   "filename": "red_man 46.aseprite",
+   "frame": {
+    "x": 2438,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 47.aseprite",
+   "frame": {
+    "x": 2491,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 200
+  },
+  {
+   "filename": "red_man 48.aseprite",
+   "frame": {
+    "x": 2544,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 300
+  },
+  {
+   "filename": "red_man 49.aseprite",
+   "frame": {
+    "x": 2597,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 110
+  },
+  {
+   "filename": "red_man 50.aseprite",
+   "frame": {
+    "x": 2650,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 80
+  },
+  {
+   "filename": "red_man 51.aseprite",
+   "frame": {
+    "x": 2703,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 200
+  },
+  {
+   "filename": "red_man 52.aseprite",
+   "frame": {
+    "x": 2756,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 160
+  },
+  {
+   "filename": "red_man 53.aseprite",
+   "frame": {
+    "x": 2809,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 160
+  },
+  {
+   "filename": "red_man 54.aseprite",
+   "frame": {
+    "x": 2862,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 400
+  },
+  {
+   "filename": "red_man 55.aseprite",
+   "frame": {
+    "x": 2915,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 400
+  }
+ ],
+ "meta": {
+  "size": {
+   "w": 2968,
+   "h": 61
+  },
+  "frameTags": [
+   {
+    "name": "idle",
+    "from": 0,
+    "to": 1,
+    "direction": "forward"
+   },
+   {
+    "name": "receive",
+    "from": 2,
+    "to": 3,
+    "direction": "forward"
+   },
+   {
+    "name": "run",
+    "from": 4,
+    "to": 5,
+    "direction": "forward"
+   },
+   {
+    "name": "back",
+    "from": 6,
+    "to": 7,
+    "direction": "forward"
+   },
+   {
+    "name": "split",
+    "from": 8,
+    "to": 9,
+    "direction": "forward"
+   },
+   {
+    "name": "jump",
+    "from": 10,
+    "to": 12,
+    "direction": "forward"
+   },
+   {
+    "name": "land",
+    "from": 13,
+    "to": 13,
+    "direction": "forward"
+   },
+   {
+    "name": "overhead",
+    "from": 14,
+    "to": 19,
+    "direction": "forward"
+   },
+   {
+    "name": "jump_smash",
+    "from": 20,
+    "to": 23,
+    "direction": "forward"
+   },
+   {
+    "name": "smash_land",
+    "from": 24,
+    "to": 24,
+    "direction": "forward"
+   },
+   {
+    "name": "kill",
+    "from": 25,
+    "to": 29,
+    "direction": "forward"
+   },
+   {
+    "name": "drive",
+    "from": 30,
+    "to": 32,
+    "direction": "forward"
+   },
+   {
+    "name": "block",
+    "from": 33,
+    "to": 35,
+    "direction": "forward"
+   },
+   {
+    "name": "net",
+    "from": 36,
+    "to": 39,
+    "direction": "forward"
+   },
+   {
+    "name": "lift",
+    "from": 40,
+    "to": 43,
+    "direction": "forward"
+   },
+   {
+    "name": "serve",
+    "from": 44,
+    "to": 47,
+    "direction": "forward"
+   },
+   {
+    "name": "serve_short",
+    "from": 48,
+    "to": 51,
+    "direction": "forward"
+   },
+   {
+    "name": "celebrate",
+    "from": 52,
+    "to": 53,
+    "direction": "forward"
+   },
+   {
+    "name": "dejected",
+    "from": 54,
+    "to": 55,
+    "direction": "forward"
+   }
+  ]
+ }
+}

@@ -1,0 +1,78 @@
+# Builds the web version with Godot and publishes it on GitHub Pages.
+# One-time setup on GitHub: Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: Web build to GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits for the running one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache Godot and its web template
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-web
+
+      - name: Download Godot and its web template
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot "$RUNNER_TEMP/dl"
+          curl -fsSL -o "$RUNNER_TEMP/dl/godot.zip" "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/dl/godot.zip" -d ~/godot
+          curl -fsSL -o "$RUNNER_TEMP/dl/templates.tpz" "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          # Only the single-threaded web template is needed; the full set is 1.3 GB.
+          tpl=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$tpl"
+          unzip -q -j "$RUNNER_TEMP/dl/templates.tpz" templates/version.txt templates/web_nothreads_release.zip -d "$tpl"
+          ls -la ~/godot "$tpl"
+
+      - name: Export the web build
+        run: |
+          godot=~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64
+          out="$RUNNER_TEMP/web"
+          mkdir -p "$out"
+          "$godot" --headless --path . --import
+          "$godot" --headless --path . --export-release "Web" "$out/index.html"
+          "$godot" --headless --path . -- --licenses="$out/GODOT_LICENSES.txt"
+          test -s "$out/index.wasm" && test -s "$out/index.pck" && test -s "$out/GODOT_LICENSES.txt"
+          ls -la "$out"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish on GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
