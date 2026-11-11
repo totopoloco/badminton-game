@@ -20,7 +20,7 @@ renderer, so it runs on almost any GPU).
 
 - **Editor:** open Godot, *Import*, pick `~/badminton/game/project.godot`, then
   press **F5**. The first open imports the PNGs (a few seconds).
-- **Command line:** `/path/to/Godot --path ~/badminton/game`
+- **Command line:** `/path/to/Godot --path .` (from this folder)
 
 F11 toggles fullscreen (the 192×108 picture scales by whole pixels), M turns all
 sound off or on, N only the crowd's cheering, H shows or hides the controls bar
@@ -39,7 +39,8 @@ pause screen also shows whether sound and crowd are on). To share the game or pl
 | Drop / net shot | 3 (or X) | X |
 | Smash / drive / kill | 4 (or C) | B |
 | Serve | 2 = high serve, 3 = short serve | A / X |
-| Menu | ↑ / ↓ to choose, ← / → to change, Enter to start | D-pad, Start |
+| Menu | ↑ / ↓ to choose, ← / → to change, Enter to start | D-pad or stick, Start (or A on *PLAY*) |
+| Pause / back to the menu | Esc (or P); Q on the pause screen | Start; Back on the pause screen |
 
 1 to 4 are the number keys above the letters (not the numeric keypad), so one
 hand plays the shots while the other moves. They go by key position, so they work
@@ -51,6 +52,14 @@ the floor under the pointer; a small white ring shows where they will stop
 arrow key to go back to the keys. Jump and hit with the number keys as usual:
 the direction you're running when you hit aims the shot, as with the arrows.
 Serves are aimed with the arrow keys.
+
+**Gamepad.** The game picks up a gamepad by itself, and the hints on screen
+follow whatever you used last: press a button or move the stick and they show
+the pad's buttons (*STICK MOVE*, with A, B, X and Y in their usual colours);
+press a key and they show the keys again. Plugging a pad in shows *GAMEPAD
+CONNECTED*. In a browser a pad only appears after you press one of its buttons.
+On Logitech F310 and F710 pads, set the switch on the back to X (XInput) so the
+buttons match. M, N, H and F11 are on the keyboard only.
 
 How a swing works:
 

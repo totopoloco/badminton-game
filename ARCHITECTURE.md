@@ -309,7 +309,7 @@ the same web version, plus Linux and Windows, on your own machine (see the
 
 | To change | Look in |
 |---|---|
-| Keys and mouse | `_setup_input()`, `_human_input()` and the `_mouse_…` functions in `main.gd`; the hints in `_draw_keys()` and `_draw_title()` |
+| Keys, mouse and gamepad | `_setup_input()`, `_human_input()`, `_unhandled_input()` (which device was used last) and the `_mouse_…` functions in `main.gd`; the hints in `_labels()`, `_draw_keys()` and `_draw_title()` |
 | Speeds, shots, gravity, computer levels | `config.gd` (tuned with `tools/sim.py`, which uses the same names) |
 | Rules and calls | `decide()` in `rally.gd`, and `score.gd` |
 | How the computer plays | `cpu.gd`, and `LEVELS` in `config.gd` |

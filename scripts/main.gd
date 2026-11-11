@@ -35,6 +35,8 @@ const COL_DUST := Color("#e3d6c2a0")
 const COL_PANEL := Color("#0d111de0")
 const COL_MARK := Color("#fff2a0a0")
 const COL_POINTER := Color("#eef0e690")   # where the mouse sends the player
+const PAD_COLORS := {"A": Color("#6cd46c"), "B": Color("#ff6464"), "X": Color("#62a8ff"),
+		"Y": Color("#ffd84a")}               # gamepad face buttons in their usual colours
 const CALLS := {"IN": "IN!", "OUT": "OUT", "NET": "NET", "SHORT": "SHORT SERVE", "FAULT": "SERVICE FAULT"}
 const LEVEL_NAMES := ["EASY", "NORMAL", "HARD"]
 
@@ -84,6 +86,7 @@ var paused := false
 var show_keys := true               # the controls bar under the court (H toggles it)
 var mouse_on := false               # the player runs to the mouse pointer (moving the mouse turns
 var mouse_travel := 0.0             # it on during play, an arrow key turns it off)
+var pad_on := false                 # hints show gamepad buttons (last input came from a pad)
 var toast := ""                     # a short note at the top, e.g. "CROWD SOUND OFF"
 var toast_t := 0
 var ok := true
@@ -114,6 +117,8 @@ func _ready() -> void:
 		rng.randomize()
 	_setup_input()
 	get_window().mouse_exited.connect(_mouse_off)
+	Input.joy_connection_changed.connect(_on_joy_connection)
+	pad_on = not Input.get_connected_joypads().is_empty()
 	sfx = Sfx.new()
 	add_child(sfx)
 	if not _load_assets():
@@ -450,11 +455,37 @@ func _human_input(allow_shots: bool) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	## Moving the mouse during play hands the running to the mouse.
-	if event is InputEventMouseMotion and human >= 0 and not auto and state != St.TITLE:
+	## The hints follow the device used last; moving the mouse during play hands
+	## the running to the mouse.
+	if (event is InputEventJoypadButton or event is InputEventJoypadMotion) and event.is_pressed():
+		pad_on = true                              # a button, or a stick past half way
+		_mouse_off()
+	elif event is InputEventKey and event.is_pressed() and not event.is_echo() \
+			and not (event.is_action("mute") or event.is_action("crowd") or event.is_action("keys")
+				or event.is_action("fullscreen")):   # keys only the keyboard has don't count
+		pad_on = false
+	elif event is InputEventMouseMotion and human >= 0 and not auto and state != St.TITLE:
 		mouse_travel += event.relative.length()    # in game pixels
 		if mouse_travel >= 2.0:
 			mouse_on = true
+			pad_on = false
+
+
+func _on_joy_connection(_device: int, connected: bool) -> void:
+	if connected:
+		pad_on = true
+	elif Input.get_connected_joypads().is_empty():
+		pad_on = false
+	_toast("GAMEPAD CONNECTED" if connected else "GAMEPAD DISCONNECTED")
+
+
+func _labels() -> Dictionary:
+	## What the hints call each control, for the device used last.
+	if pad_on:
+		return {"move": "STICK", "aim": "STICK", "jump": "Y", "clear": "A", "drop": "X", "smash": "B",
+				"start": "START", "pause": "START", "back": "BACK"}
+	return {"move": "MOUSE" if mouse_on else "←↑↓→", "aim": "←↑↓→", "jump": "1", "clear": "2",
+			"drop": "3", "smash": "4", "start": "ENTER", "pause": "ESC", "back": "Q"}
 
 
 func _mouse_off() -> void:
@@ -953,7 +984,9 @@ func _draw_hud() -> void:
 			if sub != "":
 				_box(ci, [sub], 30.0, [COL_GOLD])
 			if server == human and state_t > 10 and not show_keys:
-				PixelFont.draw_centered(ci, 96.0, 100.0, "2 HIGH SERVE   3 SHORT SERVE", COL_TEXT, 1, COL_INK)
+				var k := _labels()
+				var hint := "%s HIGH SERVE   %s SHORT SERVE" % [k["clear"], k["drop"]]
+				PixelFont.draw_centered(ci, 96.0, 100.0, hint, COL_TEXT, 1, COL_INK)
 		St.POINT:
 			var who := _side_name(winner)
 			_box(ci, [call_text, "%s %d-%d" % ["POINT " + who, score.points[0], score.points[1]]], 28.0,
@@ -971,11 +1004,12 @@ func _draw_hud() -> void:
 				games.append("%d-%d" % [g[0], g[1]])
 			var lines := [title, "  ".join(games)]
 			if state_t > 60 and human >= 0:
-				lines.append("ENTER: MENU")
+				lines.append("%s: MENU" % _labels()["start"])
 			_box(ci, lines, 26.0, [COL_GOLD, COL_TEXT])
 	if paused:
 		ci.draw_rect(Rect2(0, 0, C.W, C.H), Color(0, 0, 0, 0.55))
-		_box(ci, ["PAUSED", "ESC: PLAY   Q: MENU", "H: SHOW/HIDE KEYS",
+		var kp := _labels()
+		_box(ci, ["PAUSED", "%s: PLAY   %s: MENU" % [kp["pause"], kp["back"]], "H: SHOW/HIDE KEYS",
 				"M: SOUND %s   N: CROWD %s" % ["OFF" if sfx.muted else "ON", "OFF" if sfx.crowd_muted else "ON"]],
 				44.0, [COL_GOLD, COL_TEXT])
 	else:
@@ -993,23 +1027,30 @@ func _draw_toast(ci: CanvasItem) -> void:
 
 
 func _draw_keys(ci: CanvasItem) -> void:
-	## One line of keyboard controls on the floor strip below the court (rows
-	## 99-107, which no player, shadow or shuttle reaches); keys in gold.
-	var pairs := [["MOUSE" if mouse_on else "←↑↓→", "MOVE"], ["1", "JUMP"], ["2", "CLEAR"],
-			["3", "DROP"], ["4", "SMASH"]]
+	## One line of controls on the floor strip below the court (rows 99-107, which
+	## no player, shadow or shuttle reaches), for the keyboard, mouse or gamepad.
+	var k := _labels()
+	var pairs := [[k["move"], "MOVE"], [k["jump"], "JUMP"], [k["clear"], "CLEAR"],
+			[k["drop"], "DROP"], [k["smash"], "SMASH"]]
 	if state == St.SERVE and server == human:
-		pairs = [["2", "HIGH SERVE"], ["3", "SHORT SERVE"], ["←↑↓→", "AIM"]]
+		pairs = [[k["clear"], "HIGH SERVE"], [k["drop"], "SHORT SERVE"], [k["aim"], "AIM"]]
+	ci.draw_rect(Rect2(0, 99, C.W, C.H - 99), COL_PANEL)
+	_draw_pairs(ci, 101.0, pairs, "  ")
+
+
+func _draw_pairs(ci: CanvasItem, y: float, pairs: Array, gap: String) -> void:
+	## "KEY action" pairs centred on one line; keys in gold, gamepad buttons in
+	## their own colours.
 	var parts: Array = []
 	for pr in pairs:
 		parts.append("%s %s" % [pr[0], pr[1]])
-	var x := roundf(96.0 - PixelFont.width("  ".join(parts)) / 2.0)
-	ci.draw_rect(Rect2(0, 99, C.W, C.H - 99), COL_PANEL)
+	var x := roundf(96.0 - PixelFont.width(gap.join(parts)) / 2.0)
 	for pr in pairs:
 		var key: String = pr[0]
-		var action: String = " " + pr[1] + "  "
-		PixelFont.draw(ci, Vector2(x, 101), key, COL_GOLD)
+		var action: String = " " + pr[1] + gap
+		PixelFont.draw(ci, Vector2(x, y), key, PAD_COLORS.get(key, COL_GOLD) if pad_on else COL_GOLD)
 		x += key.length() * 4
-		PixelFont.draw(ci, Vector2(x, 101), action, COL_TEXT)
+		PixelFont.draw(ci, Vector2(x, y), action, COL_TEXT)
 		x += action.length() * 4
 
 
@@ -1026,5 +1067,8 @@ func _draw_title(ci: CanvasItem) -> void:
 		if i == menu_row:
 			PixelFont.draw(ci, Vector2(40, 37.0 + i * 7.0), ">", COL_GOLD)
 	ci.draw_rect(Rect2(10, 92, 172, 15), COL_PANEL)
-	PixelFont.draw_centered(ci, 96.0, 94.0, "ARROWS/MOUSE MOVE   ENTER START", COL_TEXT)
-	PixelFont.draw_centered(ci, 96.0, 101.0, "1 JUMP   2 CLEAR   3 DROP   4 SMASH", COL_TEXT)
+	var k := _labels()
+	_draw_pairs(ci, 94.0, [["STICK/D-PAD", "MOVE"], ["START", "PLAY"]] if pad_on
+			else [["ARROWS/MOUSE", "MOVE"], ["ENTER", "START"]], "   ")
+	_draw_pairs(ci, 101.0, [[k["jump"], "JUMP"], [k["clear"], "CLEAR"], [k["drop"], "DROP"],
+			[k["smash"], "SMASH"]], "   ")
