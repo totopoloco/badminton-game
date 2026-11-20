@@ -307,10 +307,15 @@ draws blue as a mirror image of the right-handed red player).
 
 ```mermaid
 flowchart LR
-    PUSH["git push to master"] --> BUILD["build job<br/>Godot 4.7.2 headless:<br/>import, export Web"]
+    PUSH["git push to master"] --> BUILD["build job<br/>Godot 4.7.2 headless:<br/>import,<br/>self-test,<br/>export Web"]
     BUILD --> DEPLOY["deploy job<br/>GitHub Pages"]
     BUILD --> ITCHJOB["itch job<br/>butler push, channel html5"]
 ```
+
+Before it exports, the build job plays a whole match computer against computer
+(the [self-test](README.md#self-test-computer-against-computer)). If the
+report is bad or a script error shows up, the job stops and neither site gets
+the new version.
 
 All three jobs are in `.github/workflows/pages.yml`. `tools/export.sh` builds
 the same web version, plus Linux and Windows, on your own machine (see the
