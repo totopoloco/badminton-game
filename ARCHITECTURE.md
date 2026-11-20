@@ -189,11 +189,11 @@ stateDiagram-v2
     TITLE --> SERVE: Enter starts a match
     SERVE --> RALLY: the server hits (2 high, 3 short)
     RALLY --> POINT: the shuttle lands, the call, the score
-    POINT --> WALK: point
+    POINT --> WALK: point (at 8 in game 3, change ends)
     POINT --> GAME_END: game won
     POINT --> MATCH_END: match won
     WALK --> SERVE: both at their serve spots
-    GAME_END --> WALK: next game
+    GAME_END --> WALK: change ends, next game
     MATCH_END --> TITLE: Enter
 ```
 
@@ -201,6 +201,14 @@ The states are the `St` enum in `main.gd`. Pausing (Esc) isn't a state, just a
 flag that stops `_tick()`; Q on the pause screen goes back to `TITLE`. A rally
 serves from the right court on an even score and the left on an odd one,
 diagonally, like the real game.
+
+The players change ends (law 8) after the first game, after the second when
+there is a third, and in the third game when a side first reaches 8 points.
+`score.gd` decides when (`change_ends_after()`); `_change_ends()` in `main.gd`
+does it on the way to `WALK`: each player's facing `f` flips, they reappear at
+the mirrored spot on the other half and the screen fades back in. Everything on
+the court works from `f`, not from the player's colour, so nothing else needs
+to know which end red is on.
 
 ## One shot, step by step
 
@@ -282,15 +290,18 @@ frame. Back to front:
 |---|---|
 | 0 | the hall (background image) and the crowd (an animated sheet) |
 | 1 | shadows |
-| 2 or 4 | the shuttle on red's side, behind or in front of red by depth |
-| 3 | red player |
+| 2 or 4 | the shuttle on the left half, behind or in front of that player by depth |
+| 3 | the player on the left half (red at the start) |
 | 5 | the net |
-| 6 or 8 | the shuttle on blue's side |
-| 7 | blue player |
+| 6 or 8 | the shuttle on the right half |
+| 7 | the player on the right half (blue at the start) |
 | 10 | HUD: score, key bar, messages, title menu |
 
-From this camera the net always covers red and is always covered by blue, so a
-fixed order works.
+From this camera the net always covers the player on the left half and is
+always covered by the one on the right, so the order goes by half.
+`_place_sprites()` sets it, and mirrors a player's sprite when they play from
+the other end: red's sheets face right and blue's face left (the art script
+draws blue as a mirror image of the right-handed red player).
 
 ## Build and publish
 

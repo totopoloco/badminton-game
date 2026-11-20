@@ -1,6 +1,10 @@
 extends RefCounted
 ## Rally-point scoring, 3 x 15: games to 15; from 14-all a side needs a two-point
 ## lead; at 20-all the next point wins (21 caps the game). Best of three games.
+## Players change ends after the first game, after the second when there is a
+## third, and in the third game when a side first reaches 8 points (law 8).
+
+const ENDS_AT := 8             # third game: change ends when a side first reaches this
 
 var points := [0, 0]
 var games := [0, 0]
@@ -33,6 +37,24 @@ func add(side: int) -> String:
 	games[g] += 1
 	history.append(points.duplicate())
 	return "match" if games[g] == 2 else "game"
+
+
+func change_ends_after(side: int, outcome: String) -> bool:
+	## Whether the point `side` just won (add() returned `outcome`) is followed by
+	## a change of ends.
+	if outcome == "game":
+		return true                # a game ended and another one follows
+	return outcome == "point" and game_no == 3 and points[side] == ENDS_AT \
+			and points[1 - side] < ENDS_AT
+
+
+func ends_changes_so_far() -> int:
+	## How many changes of ends law 8 requires by now: one after every finished
+	## game that another game follows (at most two), and one in the third game at 8.
+	var over: bool = games[0] == 2 or games[1] == 2
+	var between := mini(history.size() - (1 if over else 0), 2)
+	var third := 1 if game_no == 3 and maxi(points[0], points[1]) >= ENDS_AT else 0
+	return between + third
 
 
 func new_game() -> void:

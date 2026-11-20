@@ -53,12 +53,28 @@ jobs:
           unzip -q -j "$RUNNER_TEMP/dl/templates.tpz" templates/version.txt templates/web_nothreads_release.zip -d "$tpl"
           ls -la ~/godot "$tpl"
 
+      - name: Import the project
+        run: ~/godot/"Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --import
+
+      - name: Self-test, computer against computer
+        timeout-minutes: 10
+        run: |
+          godot=~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64
+          # A whole match at high speed. It fails on a bad report (e.g. a wrong number
+          # of changes of ends) or on any script error, and then nothing is published.
+          set -o pipefail
+          "$godot" --headless --path . -- --autoplay --points=200 --seed=7 --speed=32 2>&1 \
+            | tee "$RUNNER_TEMP/selftest.log"
+          if grep -q "SCRIPT ERROR" "$RUNNER_TEMP/selftest.log"; then
+            echo "::error::The self-test printed script errors"
+            exit 1
+          fi
+
       - name: Export the web build
         run: |
           godot=~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64
           out="$RUNNER_TEMP/web"
           mkdir -p "$out"
-          "$godot" --headless --path . --import
           "$godot" --headless --path . --export-release "Web" "$out/index.html"
           "$godot" --headless --path . -- --licenses="$out/GODOT_LICENSES.txt"
           for f in index.html index.wasm index.pck GODOT_LICENSES.txt; do test -s "$out/$f"; done

@@ -39,6 +39,7 @@ const PAD_COLORS := {"A": Color("#6cd46c"), "B": Color("#ff6464"), "X": Color("#
 		"Y": Color("#ffd84a")}               # gamepad face buttons in their usual colours
 const CALLS := {"IN": "IN!", "OUT": "OUT", "NET": "NET", "SHORT": "SHORT SERVE", "FAULT": "SERVICE FAULT"}
 const LEVEL_NAMES := ["EASY", "NORMAL", "HARD"]
+const FADE_TICKS := 24               # the screen fades back in after the players change ends
 
 var rig: Dictionary = {}
 var sheets := {}
@@ -87,6 +88,8 @@ var show_keys := true               # the controls bar under the court (H toggle
 var mouse_on := false               # the player runs to the mouse pointer (moving the mouse turns
 var mouse_travel := 0.0             # it on during play, an arrow key turns it off)
 var pad_on := false                 # hints show gamepad buttons (last input came from a pad)
+var ends_due := false               # the point just played is followed by a change of ends
+var fade_t := 0                     # ticks of fading in left after a change of ends
 var toast := ""                     # a short note at the top, e.g. "CROWD SOUND OFF"
 var toast_t := 0
 var ok := true
@@ -100,7 +103,7 @@ var shots_dir := ""
 var shot_count := 0
 var pending_shots: Array = []
 var stats := {"points": 0, "shots": 0, "calls": {}, "strokes": {}, "longest": 0,
-		"max_solves": 0, "max_ticks": 0, "usec": 0, "max_usec": 0}
+		"max_solves": 0, "max_ticks": 0, "usec": 0, "max_usec": 0, "ends": 0}
 var licenses_to := ""                  # --licenses: "-" prints, otherwise a file path
 
 
@@ -241,8 +244,9 @@ func _layer(z: int, painter: Callable) -> Node2D:
 
 
 func _build_scene() -> void:
-	# Seen from this camera, the net always covers red (left of it) and is always
-	# covered by blue (right of it), whatever their depth: draw red, net, blue.
+	# Seen from this camera, the net always covers the player on the left half and
+	# is always covered by the one on the right, whatever their depth: draw the
+	# left player, the net, the right player (_place_sprites() sets their layers).
 	_sprite(Sheet.load_texture("res://assets/court/background.png"), 0)
 	if crowd_sheet != null:
 		crowd_sprite = _sprite(crowd_sheet.texture, 0)
@@ -268,6 +272,39 @@ func _make_players() -> void:
 		pl.setup(side, names[side], rig)
 		players.append(pl)
 		sprites[side].texture = sheets[names[side]].texture
+	_place_sprites()
+
+
+func _place_sprites() -> void:
+	## Layer and mirroring of each player's sprite for the half it plays on: left
+	## half behind the net (3), right half in front (7). Red's sheets face right and
+	## blue's face left (the art script mirrors blue), so a player on the other
+	## half is mirrored, and its anchor with it.
+	var w: float = rig["cell"]["w"]
+	for side in 2:
+		var pl = players[side]
+		var flip: bool = pl.f != (1.0 if side == C.RED else -1.0)
+		sprites[side].z_index = 3 if pl.f > 0.0 else 7
+		sprites[side].flip_h = flip
+		sprites[side].offset = Vector2(-(w - 1.0 - anchor.x) if flip else -anchor.x, -anchor.y)
+
+
+func _change_ends() -> void:
+	## Law 8: the players swap halves. Each reappears at the same spot on the
+	## other side of the net, facing the other way, while the screen fades back in;
+	## the walk to the serve follows as usual.
+	ends_due = false
+	for pl in players:
+		pl.f = -pl.f
+		pl.x = 2.0 * C.NET_X - pl.x
+		pl.vx = 0.0
+		pl.vy = 0.0
+	_place_sprites()
+	fade_t = FADE_TICKS
+	if auto:
+		stats["ends"] += 1
+		print("change of ends (%d)  games %d-%d  score %d-%d" % [stats["ends"], score.games[0],
+				score.games[1], score.points[0], score.points[1]])
 
 
 # ------------------------------------------------------------------ flow
@@ -277,8 +314,12 @@ func _to_title() -> void:
 	rally = null
 	crowd_cheer = 0
 	_mouse_off()
+	ends_due = false
+	fade_t = 0
 	for side in 2:
+		players[side].f = 1.0 if side == C.RED else -1.0      # back to the usual ends
 		players[side].reset(Vector2(C.NET_X - players[side].f * C.HOME_U, 0.0))
+	_place_sprites()
 
 
 func _start_match() -> void:
@@ -365,6 +406,8 @@ func _physics_process(_delta: float) -> void:
 
 func _tick() -> void:
 	crowd_ms += 1000.0 / 60.0
+	if fade_t > 0:
+		fade_t -= 1
 	if crowd_cheer > 0:
 		crowd_cheer -= 1
 		if crowd_cheer == 0:
@@ -607,6 +650,7 @@ func _on_land() -> void:
 	mark_on = false
 	sfx.play("land", -4.0)
 	outcome = score.add(winner)
+	ends_due = score.change_ends_after(winner, outcome)
 	server = winner
 	for side in 2:
 		players[side].stroke = {}
@@ -643,6 +687,8 @@ func _point_tick() -> void:
 		pl.update()
 	if state_t > 80:
 		if outcome == "point":
+			if ends_due:
+				_change_ends()                     # third game, a side reached 8
 			state = St.WALK
 		elif outcome == "game":
 			state = St.GAME_END
@@ -683,6 +729,8 @@ func _game_end_tick() -> void:
 		pl.update()
 	if state_t > 150:
 		score.new_game()
+		if ends_due:
+			_change_ends()
 		state = St.WALK
 		state_t = 0
 
@@ -746,7 +794,10 @@ func _finish_auto() -> void:
 	for k in keys:
 		parts.append("%s:%d" % [k, stats["strokes"][k]])
 	print("strokes/shots %s" % [", ".join(parts)])
-	var sane: bool = ok and stats["points"] > 0 and stats["shots"] >= stats["points"]
+	var ends_expected := score.ends_changes_so_far() - (1 if ends_due else 0)   # not yet walked over
+	print("changes of ends %d (law 8 expects %d)" % [stats["ends"], ends_expected])
+	var sane: bool = ok and stats["points"] > 0 and stats["shots"] >= stats["points"] \
+			and stats["ends"] == ends_expected
 	print("RESULT %s" % ["OK" if sane else "PROBLEM"])
 	get_tree().quit(0 if sane else 1)
 
@@ -869,15 +920,16 @@ func _shuttle_pose() -> Array:
 
 
 func _shuttle_layer() -> int:
-	## Draw order of the shuttle: in front of or behind the player on its side of
-	## the net (nearer the camera = drawn later); red side below the net, blue above.
+	## Draw order of the shuttle: in front of or behind the player on its half of
+	## the net (nearer the camera = drawn later); left half below the net, right above.
 	var pose := _shuttle_pose()
 	if pose.is_empty():
 		return 4
 	var p: Vector3 = pose[0]
+	var left := C.RED if players[C.RED].f > 0.0 else C.BLUE
 	if p.x < C.NET_X:
-		return 4 if p.y >= players[C.RED].y else 2
-	return 8 if p.y >= players[C.BLUE].y else 6
+		return 4 if p.y >= players[left].y else 2
+	return 8 if p.y >= players[1 - left].y else 6
 
 
 func _draw_shuttle() -> void:
@@ -989,13 +1041,18 @@ func _draw_hud() -> void:
 				PixelFont.draw_centered(ci, 96.0, 100.0, hint, COL_TEXT, 1, COL_INK)
 		St.POINT:
 			var who := _side_name(winner)
-			_box(ci, [call_text, "%s %d-%d" % ["POINT " + who, score.points[0], score.points[1]]], 28.0,
-					[COL_GOLD, COL_TEXT])
+			var lines := [call_text, "%s %d-%d" % ["POINT " + who, score.points[0], score.points[1]]]
+			if ends_due and outcome == "point":         # at 8 in game 3; a game's end says it next
+				lines.append("CHANGE ENDS")
+			_box(ci, lines, 28.0, [COL_GOLD, COL_TEXT, COL_GOLD])
 		St.GAME_END:
 			var last: Array = score.history[score.history.size() - 1]
 			var gw := 0 if last[0] > last[1] else 1
-			_box(ci, ["GAME %s" % _side_name(gw), "%d-%d" % [last[0], last[1]],
-					"GAMES %d-%d" % [score.games[0], score.games[1]]], 26.0, [COL_GOLD, COL_TEXT])
+			var lines := ["GAME %s" % _side_name(gw), "%d-%d" % [last[0], last[1]],
+					"GAMES %d-%d" % [score.games[0], score.games[1]]]
+			if ends_due:
+				lines.append("CHANGE ENDS")
+			_box(ci, lines, 26.0, [COL_GOLD, COL_TEXT, COL_TEXT, COL_GOLD])
 		St.MATCH_END:
 			var mw := 0 if score.games[0] == 2 else 1
 			var title := "%s WIN!" % _side_name(mw) if _side_name(mw) == "YOU" else "%s WINS" % _side_name(mw)
@@ -1006,6 +1063,8 @@ func _draw_hud() -> void:
 			if state_t > 60 and human >= 0:
 				lines.append("%s: MENU" % _labels()["start"])
 			_box(ci, lines, 26.0, [COL_GOLD, COL_TEXT])
+	if fade_t > 0:
+		ci.draw_rect(Rect2(0, 0, C.W, C.H), Color(0, 0, 0, float(fade_t) / FADE_TICKS))
 	if paused:
 		ci.draw_rect(Rect2(0, 0, C.W, C.H), Color(0, 0, 0, 0.55))
 		var kp := _labels()

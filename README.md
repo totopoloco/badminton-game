@@ -86,18 +86,26 @@ The rally winner serves, from the right service court on an even score and the
 left one on an odd score, diagonally into the opposite service court (past the
 short service line; landing in the wrong court is a service fault). A shot is
 out beyond the baseline or the singles sideline (the inner one), and a shuttle
-that hits the net or doesn't cross it loses the point. Levels: Easy, Normal,
-Hard. Event: men's or women's singles.
+that hits the net or doesn't cross it loses the point. The players change ends
+after the first game, after the second when there is a third, and in the third
+game when a side first reaches 8 points (*CHANGE ENDS* shows with the score;
+then the screen fades and they continue on the other halves). Levels: Easy,
+Normal, Hard. Event: men's or women's singles.
 
 ## Self-test (computer against computer)
 
-Headless, prints a line per point and a report, exits with code 0 if all is well:
+Headless, prints a line per point and a report, exits with code 0 if all is well
+(the report also checks the changes of ends against the rules). Run it from this
+folder:
 
-    /path/to/Godot --headless --path ~/badminton/game -- --autoplay --points=40 --speed=8
+    /path/to/Godot --headless --path . -- --autoplay --points=40 --speed=8
 
-With a window it also saves screenshots to `~/badminton/game/test_out/`:
+With a window it also saves screenshots to `test_out/`:
 
-    /path/to/Godot --path ~/badminton/game -- --autoplay --points=12 --speed=2 --shots=test_out
+    /path/to/Godot --path . -- --autoplay --points=12 --speed=2 --shots=test_out
+
+The GitHub build runs a whole match this way (`--points=200 --seed=7 --speed=32`)
+before it publishes anything, and stops on a bad report or a script error.
 
 Options: `--level=0|1|2`, `--seed=N`, `--women`.
 
