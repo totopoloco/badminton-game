@@ -26,6 +26,7 @@ func _ready() -> void:
 	streams["select"] = _make(_beeps([1000.0], 0.05, 0.25))
 	streams["cheer"] = _make(_cheer(1.8, 40.0, 0))
 	streams["cheer_big"] = _make(_cheer(3.0, 60.0, 2))
+	streams["clap"] = _make(_clap())
 	for i in 6:
 		var pl := AudioStreamPlayer.new()
 		add_child(pl)
@@ -233,6 +234,41 @@ func _cheer(dur: float, claps_per_s: float, whistles: int) -> PackedFloat32Array
 	if peak > 0.0:
 		for i in n:
 			out[i] *= 0.85 / peak
+	return out
+
+
+func _clap() -> PackedFloat32Array:
+	## Two hands meeting over the net: a sharp burst of bright noise and a short,
+	## low "thump" from the palms.
+	var n := int(0.09 * RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var bp := _bandpass(1300.0, 1.1)
+	var b0: float = bp[0]
+	var b2: float = bp[1]
+	var a1: float = bp[2]
+	var a2: float = bp[3]
+	var x1 := 0.0
+	var x2 := 0.0
+	var y1 := 0.0
+	var y2 := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var x := _noise()
+		var y := b0 * x + b2 * x2 - a1 * y1 - a2 * y2
+		x2 = x1
+		x1 = x
+		y2 = y1
+		y1 = y
+		var v := y * exp(-t / 0.012) * 2.0 + _noise() * exp(-t / 0.003) * 0.35
+		v += sin(TAU * 240.0 * t) * exp(-t / 0.015) * 0.3
+		out[i] = v
+	var peak := 0.0
+	for v in out:
+		peak = maxf(peak, absf(v))
+	if peak > 0.0:
+		for i in n:
+			out[i] *= 0.8 / peak
 	return out
 
 

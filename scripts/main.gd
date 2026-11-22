@@ -18,7 +18,7 @@ const Sheet := preload("res://scripts/sheet.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const Sfx := preload("res://scripts/sfx.gd")
 
-enum St { TITLE, SERVE, RALLY, POINT, WALK, GAME_END, MATCH_END }
+enum St { TITLE, SERVE, RALLY, POINT, WALK, GAME_END, MATCH_END, ENDS }
 
 const COL_RED := Color("#ff6464")
 const COL_RED_DIM := Color("#7a3434")
@@ -39,7 +39,7 @@ const PAD_COLORS := {"A": Color("#6cd46c"), "B": Color("#ff6464"), "X": Color("#
 		"Y": Color("#ffd84a")}               # gamepad face buttons in their usual colours
 const CALLS := {"IN": "IN!", "OUT": "OUT", "NET": "NET", "SHORT": "SHORT SERVE", "FAULT": "SERVICE FAULT"}
 const LEVEL_NAMES := ["EASY", "NORMAL", "HARD"]
-const FADE_TICKS := 24               # the screen fades back in after the players change ends
+const CLAP_AT := 13                  # ticks into the clap animation when the hands meet (200 ms)
 
 var rig: Dictionary = {}
 var sheets := {}                    # character -> sheet with the racket in the near hand
@@ -91,7 +91,9 @@ var mouse_on := false               # the player runs to the mouse pointer (movi
 var mouse_travel := 0.0             # it on during play, an arrow key turns it off)
 var pad_on := false                 # hints show gamepad buttons (last input came from a pad)
 var ends_due := false               # the point just played is followed by a change of ends
-var fade_t := 0                     # ticks of fading in left after a change of ends
+var ends_path: Array = [[], []]     # changing ends: the points each player still walks to
+var clap_phase := 0                 # match end: 0 celebrating, 1 to the net, 2 clapping, 3 done
+var clap_t := 0
 var toast := ""                     # a short note at the top, e.g. "CROWD SOUND OFF"
 var toast_t := 0
 var ok := true
@@ -105,7 +107,7 @@ var shots_dir := ""
 var shot_count := 0
 var pending_shots: Array = []
 var stats := {"points": 0, "shots": 0, "calls": {}, "strokes": {}, "longest": 0,
-		"max_solves": 0, "max_ticks": 0, "usec": 0, "max_usec": 0, "ends": 0}
+		"max_solves": 0, "max_ticks": 0, "usec": 0, "max_usec": 0, "ends": 0, "clap": false}
 var licenses_to := ""                  # --licenses: "-" prints, otherwise a file path
 
 
@@ -281,13 +283,13 @@ func _make_players() -> void:
 
 
 func _place_sprites() -> void:
-	## Layer, sheet and mirroring of each player's sprite for the half it plays on:
-	## left half behind the net (3), right half in front (7). Red's sheets face right
-	## and blue's face left (the art script mirrors blue), so a player on the other
-	## half is mirrored, and its anchor with it. Mirroring swaps the racket hand too,
-	## so each character has two sheets, racket in the hand nearer the camera or in
-	## the far hand, and the one shown keeps the player's hand: a right-hander holds
-	## it in the near hand facing right and in the far hand facing left.
+	## Sheet and mirroring of each player's sprite for the way it faces (the layer is
+	## set every frame in _update_view). Red's sheets face right and blue's face left
+	## (the art script mirrors blue), so a player facing the other way is mirrored,
+	## and its anchor with it. Mirroring swaps the racket hand too, so each character
+	## has two sheets, racket in the hand nearer the camera or in the far hand, and
+	## the one shown keeps the player's hand: a right-hander holds it in the near hand
+	## facing right and in the far hand facing left.
 	var w: float = rig["cell"]["w"]
 	for side in 2:
 		var pl = players[side]
@@ -296,27 +298,80 @@ func _place_sprites() -> void:
 		shown[side] = sheets_far[pl.who] if not near and sheets_far.has(pl.who) else sheets[pl.who]
 		sprites[side].texture = shown[side].texture
 		var flip: bool = pl.f != float(rig["characters"][pl.who]["face"])
-		sprites[side].z_index = 3 if pl.f > 0.0 else 7
 		sprites[side].flip_h = flip
 		sprites[side].offset = Vector2(-(w - 1.0 - anchor.x) if flip else -anchor.x, -anchor.y)
 
 
-func _change_ends() -> void:
-	## Law 8: the players swap halves. Each reappears at the same spot on the
-	## other side of the net, facing the other way, while the screen fades back in;
-	## the walk to the serve follows as usual.
+func _start_ends_walk() -> void:
+	## Law 8: the players change ends. Each walks round a net post to the other half:
+	## the one from the left behind the far post, the one from the right in front of
+	## the near post, straight to where the next rally starts. They face the way they
+	## walk and turn to the net on arrival (_finish_ends_walk).
 	ends_due = false
-	for pl in players:
-		pl.f = -pl.f
-		pl.x = 2.0 * C.NET_X - pl.x
+	var spots := _serve_spots([-players[0].f, -players[1].f])
+	for side in 2:
+		var pl = players[side]
+		var lane: float = -C.LANE_Y if pl.f > 0.0 else C.LANE_Y
+		ends_path[side] = [Vector2(C.NET_X - pl.f * C.LANE_X, lane),
+				Vector2(C.NET_X + pl.f * C.LANE_X, lane), spots[side]]
+		pl.mood = ""
+		pl.receiving = false
+		pl.no_limits = true
+	state = St.ENDS
+	state_t = 0
+
+
+func _ends_tick() -> void:
+	var walking := false
+	for side in 2:
+		var pl = players[side]
+		var path: Array = ends_path[side]
+		var m := Vector2.ZERO
+		if not path.is_empty():
+			while path.size() > 1 and Vector2(pl.x, pl.y).distance_to(path[0]) < 2.0:
+				path.pop_front()                   # round the post: on to the next point
+			var d: Vector2 = path[0] - Vector2(pl.x, pl.y)
+			var dist := d.length()
+			if path.size() == 1 and dist <= 0.5:
+				path.clear()                       # there
+			else:
+				var k := 1.0 if path.size() > 1 else minf(1.0, dist / 6.0)
+				m = d * (C.WALK_SPEED * k / dist)
+				walking = true
+		pl.move_x = m.x
+		pl.move_y = m.y
+		pl.update()
+	if auto and state_t == 50:
+		_snapshot("ends")
+	if not walking or state_t > 600:
+		_finish_ends_walk()
+
+
+func _finish_ends_walk() -> void:
+	for side in 2:
+		var pl = players[side]
+		pl.f = -pl.f                               # turn to face the net
+		pl.no_limits = false
 		pl.vx = 0.0
 		pl.vy = 0.0
+		ends_path[side] = []
 	_place_sprites()
-	fade_t = FADE_TICKS
+	state = St.WALK
+	state_t = 0
 	if auto:
 		stats["ends"] += 1
 		print("change of ends (%d)  games %d-%d  score %d-%d" % [stats["ends"], score.games[0],
 				score.games[1], score.points[0], score.points[1]])
+
+
+func _walk_layer(pl) -> int:
+	## Changing ends: behind the net (3) on the left half or out behind the far post,
+	## in front of it (7) on the right half or out in front of the near post.
+	if pl.y < -C.POST_Y:
+		return 3
+	if pl.y > C.POST_Y:
+		return 7
+	return 3 if pl.x < C.NET_X else 7
 
 
 # ------------------------------------------------------------------ flow
@@ -327,7 +382,7 @@ func _to_title() -> void:
 	crowd_cheer = 0
 	_mouse_off()
 	ends_due = false
-	fade_t = 0
+	clap_phase = 0
 	for side in 2:
 		players[side].f = 1.0 if side == C.RED else -1.0      # back to the usual ends
 		players[side].reset(Vector2(C.NET_X - players[side].f * C.HOME_U, 0.0))
@@ -344,15 +399,16 @@ func _start_match() -> void:
 	_begin_serve()
 
 
-func _serve_spots() -> Array:
+func _serve_spots(fs: Array = []) -> Array:
 	## Server and receiver stand diagonally: the server in the right court on an
-	## even score, the left one on an odd score.
-	var court := C.court_side(players[server].f, score.points[server])
+	## even score, the left one on an odd score. `fs`: facings to plan for (changing ends).
+	var f: Array = fs if not fs.is_empty() else [players[0].f, players[1].f]
+	var court := C.court_side(f[server], score.points[server])
 	var spots := [Vector2.ZERO, Vector2.ZERO]
 	for side in 2:
 		var u: float = C.SERVER_U if side == server else C.RECEIVER_U
 		var y: float = C.SERVE_Y * (court if side == server else -court)
-		spots[side] = Vector2(C.NET_X - players[side].f * u, y)
+		spots[side] = Vector2(C.NET_X - f[side] * u, y)
 	return spots
 
 
@@ -418,8 +474,6 @@ func _physics_process(_delta: float) -> void:
 
 func _tick() -> void:
 	crowd_ms += 1000.0 / 60.0
-	if fade_t > 0:
-		fade_t -= 1
 	if crowd_cheer > 0:
 		crowd_cheer -= 1
 		if crowd_cheer == 0:
@@ -443,6 +497,8 @@ func _tick() -> void:
 			_game_end_tick()
 		St.MATCH_END:
 			_match_end_tick()
+		St.ENDS:
+			_ends_tick()
 	if not flash.is_empty():
 		flash["t"] += 1
 		if flash["t"] > 5:
@@ -698,17 +754,19 @@ func _point_tick() -> void:
 	for pl in players:
 		pl.update()
 	if state_t > 80:
+		state_t = 0
 		if outcome == "point":
-			if ends_due:
-				_change_ends()                     # third game, a side reached 8
 			state = St.WALK
+			if ends_due:
+				_start_ends_walk()                 # third game, a side reached 8
 		elif outcome == "game":
 			state = St.GAME_END
 			sfx.play("game", -4.0)
 		else:
 			state = St.MATCH_END
+			clap_phase = 0
+			clap_t = 0
 			sfx.play("game", -4.0)
-		state_t = 0
 		if auto and stats["points"] >= auto_points and outcome != "match":
 			_finish_auto()
 
@@ -741,25 +799,82 @@ func _game_end_tick() -> void:
 		pl.update()
 	if state_t > 150:
 		score.new_game()
-		if ends_due:
-			_change_ends()
 		state = St.WALK
 		state_t = 0
+		if ends_due:
+			_start_ends_walk()
 
 
 func _match_end_tick() -> void:
-	for pl in players:
-		pl.mood = "celebrate" if score.games[pl.side] == 2 else "dejected"
-		pl.update()
+	## The winner celebrates, then both walk to the net and clap hands over it (the
+	## free hand meets the other's above the tape: rig.json's clap point says where
+	## to stand), and the winner celebrates again.
+	clap_t += 1
+	match clap_phase:
+		0:
+			for pl in players:
+				pl.mood = "celebrate" if score.games[pl.side] == 2 else "dejected"
+				pl.update()
+			if auto and clap_t == 30:
+				_snapshot("match")
+			if clap_t > 70:
+				clap_phase = 1
+				clap_t = 0
+				for pl in players:
+					pl.mood = ""
+					pl.no_limits = true            # the spot is closer to the net than play allows
+		1:
+			var walking := false
+			for pl in players:
+				var d: Vector2 = Vector2(C.NET_X - pl.f * _clap_hand(pl).x, 0.0) - Vector2(pl.x, pl.y)
+				var dist := d.length()
+				var m := Vector2.ZERO
+				if dist > 0.5:
+					m = d * (C.WALK_SPEED * minf(1.0, dist / 6.0) / dist)
+					walking = true
+				pl.move_x = m.x
+				pl.move_y = m.y
+				pl.update()
+			if not walking or clap_t > 300:
+				clap_phase = 2
+				clap_t = 0
+				for pl in players:
+					pl.vx = 0.0
+					pl.vy = 0.0
+					pl.mood = "clap"
+		2:
+			for pl in players:
+				pl.update()
+			if clap_t == CLAP_AT:                  # the hands meet
+				sfx.play("clap", -2.0)
+				flash = {"pos": C.screen(C.NET_X, 0.0, _clap_hand(players[0]).y), "t": 0, "level": 0}
+				crowd_cheer = 200
+				crowd_ms = 0.0
+				sfx.play("cheer", -6.0, randf_range(0.94, 1.06))
+				stats["clap"] = true
+				if auto:
+					_snapshot("clap")
+			if clap_t > 50:
+				clap_phase = 3
+				clap_t = 0
+				for pl in players:
+					pl.mood = "celebrate" if score.games[pl.side] == 2 else ""
+		_:
+			for pl in players:
+				pl.update()
 	if auto:
-		if state_t == 30:
-			_snapshot("match")
-		if state_t > 40:
+		if (clap_phase == 3 and clap_t > 20) or state_t > 900:
 			_finish_auto()
 		return
 	if state_t > 60 and (Input.is_action_just_pressed("start") or Input.is_action_just_pressed("clear")):
 		sfx.play("select")
 		_to_title()
+
+
+func _clap_hand(pl) -> Vector2:
+	## (dx, z) of the free hand when it meets the other player's over the net.
+	var pts: Array = pl.hold.get("clap", [])
+	return pts[1] if pts.size() > 1 else Vector2(8.0, 31.0)
 
 
 # ------------------------------------------------------------------ test mode
@@ -806,10 +921,15 @@ func _finish_auto() -> void:
 	for k in keys:
 		parts.append("%s:%d" % [k, stats["strokes"][k]])
 	print("strokes/shots %s" % [", ".join(parts)])
-	var ends_expected := score.ends_changes_so_far() - (1 if ends_due else 0)   # not yet walked over
+	# a change of ends counts once walked; one still due or under way doesn't yet
+	var ends_expected := score.ends_changes_so_far() - (1 if ends_due else 0) \
+			- (1 if state == St.ENDS else 0)
 	print("changes of ends %d (law 8 expects %d)" % [stats["ends"], ends_expected])
+	var over: bool = score.games[0] == 2 or score.games[1] == 2
+	if over:
+		print("hands clapped over the net: %s" % ["yes" if stats["clap"] else "NO"])
 	var sane: bool = ok and stats["points"] > 0 and stats["shots"] >= stats["points"] \
-			and stats["ends"] == ends_expected
+			and stats["ends"] == ends_expected and (stats["clap"] or not over)
 	print("RESULT %s" % ["OK" if sane else "PROBLEM"])
 	get_tree().quit(0 if sane else 1)
 
@@ -870,6 +990,15 @@ func _update_view() -> void:
 		sprites[side].region_rect = sh.rects[idx]
 		var p := C.screen(pl.x, pl.y, pl.z)
 		sprites[side].position = Vector2(roundf(p.x), roundf(p.y))
+	# Layers: the left half is behind the net (3), the right half in front of it (7);
+	# changing ends, it goes by where each player walks, the nearer one on top.
+	var zs := [3 if players[0].f > 0.0 else 7, 3 if players[1].f > 0.0 else 7]
+	if state == St.ENDS:
+		zs = [_walk_layer(players[0]), _walk_layer(players[1])]
+		if zs[0] == zs[1]:
+			zs[0 if players[0].y > players[1].y else 1] += 1
+	for side in 2:
+		sprites[side].z_index = zs[side]
 	if crowd_sprite != null:
 		var tag := "cheer" if crowd_cheer > 0 else "idle"
 		crowd_sprite.region_rect = crowd_sheet.rects[crowd_sheet.frame_index(tag, -1, crowd_ms, true)]
@@ -916,7 +1045,7 @@ func _draw_shadows() -> void:
 func _shuttle_pose() -> Array:
 	## [court position, screen direction] of the shuttle to draw, or [] when hidden.
 	if rally == null or state == St.TITLE or state == St.WALK or state == St.GAME_END \
-			or state == St.MATCH_END:
+			or state == St.MATCH_END or state == St.ENDS:
 		return []
 	var s = rally.s
 	if s.state == "held":
@@ -936,7 +1065,7 @@ func _shuttle_layer() -> int:
 	## the net (nearer the camera = drawn later); left half below the net, right above.
 	var pose := _shuttle_pose()
 	if pose.is_empty():
-		return 4
+		return 9 if state == St.MATCH_END else 4  # the clap's flash, above both players
 	var p: Vector3 = pose[0]
 	var left := C.RED if players[C.RED].f > 0.0 else C.BLUE
 	if p.x < C.NET_X:
@@ -1074,9 +1203,9 @@ func _draw_hud() -> void:
 			var lines := [title, "  ".join(games)]
 			if state_t > 60 and human >= 0:
 				lines.append("%s: MENU" % _labels()["start"])
-			_box(ci, lines, 26.0, [COL_GOLD, COL_TEXT])
-	if fade_t > 0:
-		ci.draw_rect(Rect2(0, 0, C.W, C.H), Color(0, 0, 0, float(fade_t) / FADE_TICKS))
+			_box(ci, lines, 4.0, [COL_GOLD, COL_TEXT])   # up top: the players meet at the net
+		St.ENDS:
+			_box(ci, ["CHANGE ENDS"], 28.0, [COL_GOLD])
 	if paused:
 		ci.draw_rect(Rect2(0, 0, C.W, C.H), Color(0, 0, 0, 0.55))
 		var kp := _labels()

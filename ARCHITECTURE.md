@@ -189,11 +189,13 @@ stateDiagram-v2
     TITLE --> SERVE: Enter starts a match
     SERVE --> RALLY: the server hits (2 high, 3 short)
     RALLY --> POINT: the shuttle lands, the call, the score
-    POINT --> WALK: point (at 8 in game 3, change ends)
+    POINT --> WALK: point
+    POINT --> ENDS: at 8 in game 3
     POINT --> GAME_END: game won
     POINT --> MATCH_END: match won
+    ENDS --> WALK: both round the posts, facing the net
     WALK --> SERVE: both at their serve spots
-    GAME_END --> WALK: change ends, next game
+    GAME_END --> ENDS: next game
     MATCH_END --> TITLE: Enter
 ```
 
@@ -204,11 +206,19 @@ diagonally, like the real game.
 
 The players change ends (law 8) after the first game, after the second when
 there is a third, and in the third game when a side first reaches 8 points.
-`score.gd` decides when (`change_ends_after()`); `_change_ends()` in `main.gd`
-does it on the way to `WALK`: each player's facing `f` flips, they reappear at
-the mirrored spot on the other half and the screen fades back in. Everything on
-the court works from `f`, not from the player's colour, so nothing else needs
-to know which end red is on.
+`score.gd` decides when (`change_ends_after()`); `_start_ends_walk()` in
+`main.gd` sends both players walking (state `ENDS`) round the net posts, the one
+from the left half behind the far post and the one from the right in front of
+the near post, straight to where the next rally starts. On the way their layers
+go by where they are (`_walk_layer()`), and on arrival `_finish_ends_walk()`
+flips each player's facing `f`, so they turn to the net. Everything on the court
+works from `f`, not from the player's colour, so nothing else needs to know
+which end red is on.
+
+At the end of the match (`MATCH_END`) the winner celebrates, then both walk to
+the net and clap hands over it: the art's `clap` animation raises the free hand
+over the tape, and its position in `rig.json` (`hold.clap`) tells the game where
+each player stands so the hands meet. The result box moves to the top for it.
 
 ## One shot, step by step
 
@@ -298,10 +308,14 @@ frame. Back to front:
 | 10 | HUD: score, key bar, messages, title menu |
 
 From this camera the net always covers the player on the left half and is
-always covered by the one on the right, so the order goes by half.
-`_place_sprites()` sets it, and mirrors a player's sprite when they play from
-the other end: red's sheets face right and blue's face left (the art script
-draws blue as a mirror image of red).
+always covered by the one on the right, so the order goes by half;
+`_update_view()` sets it every frame. While the players change ends it goes by
+where each one walks instead: behind the net out past the far post, in front of
+it past the near post, and the nearer player on top (4 or 8) when both share a
+layer (the shuttle isn't drawn then). The clap's flash at the end of the match
+is drawn on layer 9, above both players. `_place_sprites()` mirrors a player's
+sprite when they face the other way: red's sheets face right and blue's face
+left (the art script draws blue as a mirror image of red).
 
 A mirror image also swaps the racket hand, so every character has two sheets:
 the racket in the hand nearer the camera (`red_man.png`) and the same poses with

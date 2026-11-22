@@ -87,7 +87,16 @@ ANIMS = {
                      ("bh_serve_follow", 200)], False, 2),
     "celebrate":   ([("celebrate_a", 160), ("celebrate_b", 160)], True, None),
     "dejected":    ([("dejected_a", 400), ("dejected_b", 400)], True, None),
+    "clap":        ([("clap_up", 200), ("clap", 240), ("clap_up", 300)], False, None),
 }
+
+# Clapping hands over the net after the match: the free hand goes up beside the
+# head, then forward over the tape (the game's NET_H, 28 px) to meet the other
+# player's, on tiptoe; the racket hangs from the other hand. rig.json gets the free
+# hand per frame (like the serves' "hold"), so the game knows where to stand.
+CLAP_BODY = dict(head=(3, -27), sh=(2, -21), hip=(0, -12), re=(0, -17), rh=(-1, -13), ang=100)
+base.POSES["clap_up"] = base.pose(**CLAP_BODY, fe=(4, -25), fh=(5, -30))
+base.POSES["clap"] = base.pose(**CLAP_BODY, fe=(5, -26), fh=(8, -30), lift=1)
 SERVES = ("serve", "serve_short")
 SHUTTLE_DIRS = 32
 SHUTTLE_CELL = 13
@@ -401,8 +410,8 @@ def rig(cell):
         for name, (frames, _, contact) in ANIMS.items():
             if contact is not None:
                 c["contact"][name] = local(who, frames[contact][0], "racket")
-            if name in SERVES:   # where the free hand holds the shuttle, per frame
-                c["hold"][name] = [local(who, p, "fh") for p, _ in frames]
+            if name in SERVES or name == "clap":   # the free hand per frame: holding the
+                c["hold"][name] = [local(who, p, "fh") for p, _ in frames]   # shuttle / clapping
         out["characters"][who] = c
     return out
 

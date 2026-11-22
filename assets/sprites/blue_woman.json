@@ -559,11 +559,41 @@
     "h": 61
    },
    "duration": 400
+  },
+  {
+   "filename": "blue_woman 56.aseprite",
+   "frame": {
+    "x": 2968,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 200
+  },
+  {
+   "filename": "blue_woman 57.aseprite",
+   "frame": {
+    "x": 3021,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 240
+  },
+  {
+   "filename": "blue_woman 58.aseprite",
+   "frame": {
+    "x": 3074,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 300
   }
  ],
  "meta": {
   "size": {
-   "w": 2968,
+   "w": 3127,
    "h": 61
   },
   "frameTags": [
@@ -679,6 +709,12 @@
     "name": "dejected",
     "from": 54,
     "to": 55,
+    "direction": "forward"
+   },
+   {
+    "name": "clap",
+    "from": 56,
+    "to": 58,
     "direction": "forward"
    }
   ]

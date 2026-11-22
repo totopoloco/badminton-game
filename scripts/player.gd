@@ -27,6 +27,7 @@ var stroke := {}               # empty, or the swing in progress (see rally.gd)
 var mood := ""                 # "", "celebrate", "dejected"
 var serve_pose := ""           # "serve" / "serve_short" while holding the shuttle to serve
 var receiving := false
+var no_limits := false         # changing ends or clapping at the net: no half or sideline limits
 var land_ticks := 0
 var anim := "idle"
 var anim_frame := -1           # explicit frame within the tag, or -1 to play by time
@@ -65,6 +66,7 @@ func reset(p: Vector2) -> void:
 	mood = ""
 	serve_pose = ""
 	receiving = false
+	no_limits = false
 	land_ticks = 0
 
 
@@ -137,11 +139,11 @@ func update() -> void:
 	vy = _axis(vy, ty)
 	var lim := x_limits()
 	x += vx * C.TICK
-	if x < lim.x or x > lim.y:
+	if not no_limits and (x < lim.x or x > lim.y):
 		x = clampf(x, lim.x, lim.y)
 		vx = 0.0
 	y += vy * C.TICK
-	if absf(y) > C.Y_LIM:
+	if not no_limits and absf(y) > C.Y_LIM:
 		y = clampf(y, -C.Y_LIM, C.Y_LIM)
 		vy = 0.0
 	if z > 0.0 or vz > 0.0:

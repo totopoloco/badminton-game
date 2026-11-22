@@ -88,9 +88,10 @@ short service line; landing in the wrong court is a service fault). A shot is
 out beyond the baseline or the singles sideline (the inner one), and a shuttle
 that hits the net or doesn't cross it loses the point. The players change ends
 after the first game, after the second when there is a third, and in the third
-game when a side first reaches 8 points (*CHANGE ENDS* shows with the score;
-then the screen fades and they continue on the other halves). Levels: Easy,
-Normal, Hard. Event: men's or women's singles.
+game when a side first reaches 8 points (*CHANGE ENDS* shows with the score,
+then both walk round the net posts to the other half). After the last point the
+players walk to the net and clap hands over it. Levels: Easy, Normal, Hard.
+Event: men's or women's singles.
 
 ## Self-test (computer against computer)
 
