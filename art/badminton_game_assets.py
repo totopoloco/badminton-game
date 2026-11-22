@@ -122,11 +122,61 @@ CROWD_Y, CROWD_H = 8, 28            # the crowd sheet covers screen rows 8-35
 TIERS = ((12, 49, 151), (20, 52, 151), (28, 3, 183))
 SEAT_PITCH = 6
 GAME_PANEL = (159, 9, 31, 11)       # x, y, w, h of the board behind "GAME n"
-BOARD_X = (4, 52, 104, 152)         # the four sponsor boards of draw_background
-# Invented sponsors (text, colour) for those boards, left to right. 3x5 capitals,
-# digits and "x"; up to 8 characters fit a board.
-SPONSORS = (("AIRVANE", "#eef0e6"), ("3x15 CUP", "#fff2a0"),
-            ("CORKSTAR", "#1d2a45"), ("FIZZBIRD", "#eef0e6"))
+# The hoarding: a row of four LED panels along the wall (rows 56-67) in place of the
+# animations' four boards, each with an invented sponsor's logo: an emblem and the
+# name in the 3x5 font (capitals, digits and "x"; up to 8 characters), lettered in
+# the sponsor's own colours. Left to right. The net covers x 92-104 of the band,
+# so the third logo starts after the far post ("at" fixes a logo's x; None centres
+# it on its panel). Emblem rows use the legend's keys; "." is the board.
+PANEL_W = 48
+BOARD_Y, BOARD_H = 56, 12
+PANEL_SEAM = "#141b2c"
+SPONSORS = (
+    dict(name="CORKSTAR", board="#a8842f", letters=(("CORK", "#1d2a45"), ("STAR", "#fff8e0")),
+         emblem=("w.w.w.w.s.",                   # a shuttle with a sparkle
+                 "wwwwwwwsss",
+                 ".wlwlw..s.",
+                 ".wwwww....",
+                 "..wlw.....",
+                 "..www.....",
+                 "..nnn.....",
+                 "..ccc.....",
+                 "...c......"),
+         legend={"w": "#fff8e0", "l": "#d8d2c0", "n": "#1d2a45", "c": "#e9dcc0", "s": "#fffbe8"},
+         at=None),
+    dict(name="3x15 CUP", board="#8f3a3a", letters=(("3x15 CUP", "#fff2a0"),),
+         emblem=(".ggggggg.",                    # a trophy
+                 "g.hggggsg",
+                 "g.hggggsg",
+                 ".ghggggs.",
+                 "..hgggs..",
+                 "...hgs...",
+                 "....g....",
+                 "...hgs...",
+                 "..ggggs.."),
+         legend={"g": "#f2c14e", "h": "#fff2a0", "s": "#b8862b"},
+         at=None),
+    dict(name="AIRVANE", board="#2f5f96", letters=(("AIR", "#9fd3ff"), ("VANE", "#eef0e6")),
+         emblem=("......o..",                    # a weathervane's arrow
+                 "ww....oo.",
+                 ".wwwwwooo",
+                 "ww....oo.",
+                 "......o.."),
+         legend={"w": "#eef0e6", "o": "#ffb347"},
+         at=105),
+    dict(name="FIZZBIRD", board="#2f7f62", letters=(("FIZZ", "#eef0e6"), ("BIRD", "#ffd23f")),
+         emblem=(".b........",                   # a round little bird and bubbles
+                 "b.b...yyy.",
+                 ".b...yyeyo",
+                 "...yyyyyy.",
+                 "b.yyywwyy.",
+                 "..yyyyyyy.",
+                 "...yyyyy..",
+                 ".....d.d.."),
+         legend={"y": "#ffd23f", "w": "#e0a400", "e": "#1d2a45", "o": "#ff8c2b",
+                 "b": "#c9f2e4", "d": "#e0a400"},
+         at=None),
+)
 CROWD_ANIMS = (("idle", 2, 700), ("cheer", 4, 110))     # tag, frames, ms per frame
 CROWD_DIM = 0.74                    # the stands are darker than the lit court
 SKINS = ("#e6b38c", "#c9936a", "#a36b46", "#704732")
@@ -285,12 +335,27 @@ def draw_hall(rect, rows):
     gx, gy, gw, gh = GAME_PANEL
     rect(bg, gx, gy, gw, gh, C["panel_rim"])
     rect(bg, gx + 1, gy + 1, gw - 2, gh - 2, C["panel"])
-    names = Raster()
-    for i, bx in enumerate(BOARD_X):
-        rect(bg, bx, 57, 36, 11, C["boards"][i])     # clear the placeholder stripes
-        text, colour = SPONSORS[i]
-        text_raster(names, bx + (36 - (len(text) * 4 - 1)) // 2, 60, text, colour)
-    rows(bg, 1, names)
+    logos = Raster()
+    for i, sp in enumerate(SPONSORS):                # the hoarding, over the old boards
+        x0 = i * PANEL_W
+        rect(bg, x0, BOARD_Y, PANEL_W, BOARD_H, sp["board"])
+        rect(bg, x0, BOARD_Y, PANEL_W, 1, base.tint(sp["board"], "#ffffff40"))   # lit top edge
+        if i < len(SPONSORS) - 1:
+            rect(bg, x0 + PANEL_W - 1, BOARD_Y, 1, BOARD_H, PANEL_SEAM)
+        emblem = sp["emblem"]
+        ew = max(len(row) for row in emblem)
+        tw = sum(len(t) for t, _ in sp["letters"]) * 4 - 1
+        x = sp["at"] if sp["at"] is not None else x0 + (PANEL_W - ew - 2 - tw) // 2
+        ey = BOARD_Y + 1 + (BOARD_H - 1 - len(emblem)) // 2
+        for yy, row in enumerate(emblem):
+            for xx, ch in enumerate(row):
+                if ch != ".":
+                    logos.put(x + xx, ey + yy, sp["legend"][ch])
+        x += ew + 2
+        for text, colour in sp["letters"]:
+            text_raster(logos, x, BOARD_Y + 4, text, colour)
+            x += len(text) * 4
+    rows(bg, 1, logos)
 
 
 def face(who):

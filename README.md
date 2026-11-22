@@ -3,8 +3,8 @@
 A pixel-art badminton game built from the Aseprite animations: the same hall,
 court, net, players and shuttle, drawn through aseprite-mcp and exported as
 sprite sheets. You play red; the computer plays blue. A crowd in the stands
-cheers every point (longer after a game or the match), and the boards along
-the court carry invented sponsors.
+cheers every point (longer after a game or the match), and the LED boards along
+the court carry the logos of invented sponsors.
 
 **Play it in your browser: https://totopoloco.github.io/badminton-game/**
 (a desktop browser with a keyboard; click the game once so it gets the keys).
@@ -128,9 +128,10 @@ to `assets/source/`), from the project folder:
 
 With `preview` instead of `mcp --mcp-dir ~/aseprite-mcp` the same drawing calls
 run through Pillow, no Aseprite needed (that is how the shipped PNGs were made).
-Then reopen the project so Godot re-imports the PNGs. The sponsor names are
-`SPONSORS` near the top of that script (up to 8 characters each); the crowd's
-seats and colours are next to them.
+Then reopen the project so Godot re-imports the PNGs. The sponsors are
+`SPONSORS` near the top of that script: for each board its colour, the name
+(up to 8 characters) in its letter colours, and the emblem as rows of pixels;
+the crowd's seats and colours are next to them.
 
 ## Files
 
