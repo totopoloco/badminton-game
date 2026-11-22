@@ -92,8 +92,11 @@ var mouse_travel := 0.0             # it on during play, an arrow key turns it o
 var pad_on := false                 # hints show gamepad buttons (last input came from a pad)
 var ends_due := false               # the point just played is followed by a change of ends
 var ends_path: Array = [[], []]     # changing ends: the points each player still walks to
-var clap_phase := 0                 # match end: 0 celebrating, 1 to the net, 2 clapping, 3 done
-var clap_t := 0
+var clap_phase := 0                 # match end: 0 reacting, 1 to the net, 2 clapping, 3 the loser
+var clap_t := 0                     # leaves, the winner hops for joy, 4 the winner leaves, 5 gone
+var end_path: Array = [[], []]      # match end: the points each player still walks to
+var joy_i := 0                      # the spot the winner hops to next (_joy_tick)
+var gone: Array = []                # the sides that have left the court, in order
 var toast := ""                     # a short note at the top, e.g. "CROWD SOUND OFF"
 var toast_t := 0
 var ok := true
@@ -321,26 +324,31 @@ func _start_ends_walk() -> void:
 	state_t = 0
 
 
+func _follow(pl, path: Array, speed: float) -> bool:
+	## Steers a player along `path` (court points, dropped as they are passed) at
+	## `speed` (share of SPEED), slowing down for the last one. False once there.
+	var m := Vector2.ZERO
+	if not path.is_empty():
+		while path.size() > 1 and Vector2(pl.x, pl.y).distance_to(path[0]) < 2.0:
+			path.pop_front()                       # e.g. round the post: on to the next point
+		var d: Vector2 = path[0] - Vector2(pl.x, pl.y)
+		var dist := d.length()
+		if path.size() == 1 and dist <= 0.5:
+			path.clear()                           # there
+		else:
+			var k := 1.0 if path.size() > 1 else minf(1.0, dist / 6.0)
+			m = d * (speed * k / dist)
+	pl.move_x = m.x
+	pl.move_y = m.y
+	return not path.is_empty()
+
+
 func _ends_tick() -> void:
 	var walking := false
 	for side in 2:
-		var pl = players[side]
-		var path: Array = ends_path[side]
-		var m := Vector2.ZERO
-		if not path.is_empty():
-			while path.size() > 1 and Vector2(pl.x, pl.y).distance_to(path[0]) < 2.0:
-				path.pop_front()                   # round the post: on to the next point
-			var d: Vector2 = path[0] - Vector2(pl.x, pl.y)
-			var dist := d.length()
-			if path.size() == 1 and dist <= 0.5:
-				path.clear()                       # there
-			else:
-				var k := 1.0 if path.size() > 1 else minf(1.0, dist / 6.0)
-				m = d * (C.WALK_SPEED * k / dist)
-				walking = true
-		pl.move_x = m.x
-		pl.move_y = m.y
-		pl.update()
+		if _follow(players[side], ends_path[side], C.WALK_SPEED):
+			walking = true
+		players[side].update()
 	if auto and state_t == 50:
 		_snapshot("ends")
 	if not walking or state_t > 600:
@@ -383,6 +391,8 @@ func _to_title() -> void:
 	_mouse_off()
 	ends_due = false
 	clap_phase = 0
+	end_path = [[], []]
+	gone = []
 	for side in 2:
 		players[side].f = 1.0 if side == C.RED else -1.0      # back to the usual ends
 		players[side].reset(Vector2(C.NET_X - players[side].f * C.HOME_U, 0.0))
@@ -806,35 +816,34 @@ func _game_end_tick() -> void:
 
 
 func _match_end_tick() -> void:
-	## The winner celebrates, then both walk to the net and clap hands over it (the
-	## free hand meets the other's above the tape: rig.json's clap point says where
-	## to stand), and the winner celebrates again.
+	## After the last point both walk to the net and clap hands over it (the free
+	## hand meets the other's above the tape: rig.json's clap point says where to
+	## stand). Then the loser walks off the court, while the winner hops about its
+	## half for joy for a little while before leaving too.
 	clap_t += 1
+	var wi := 0 if score.games[0] == 2 else 1      # the winner's side
 	match clap_phase:
-		0:
+		0:                                         # a moment of joy and gloom where they stand
 			for pl in players:
-				pl.mood = "celebrate" if score.games[pl.side] == 2 else "dejected"
+				pl.mood = "celebrate" if pl.side == wi else "dejected"
 				pl.update()
-			if auto and clap_t == 30:
+			if auto and clap_t == 10:
 				_snapshot("match")
-			if clap_t > 70:
+			if clap_t > 20:
 				clap_phase = 1
 				clap_t = 0
-				for pl in players:
+				for side in 2:
+					var pl = players[side]
 					pl.mood = ""
+					pl.receiving = false
 					pl.no_limits = true            # the spot is closer to the net than play allows
-		1:
+					end_path[side] = [Vector2(C.NET_X - pl.f * _clap_hand(pl).x, 0.0)]
+		1:                                         # to the net
 			var walking := false
-			for pl in players:
-				var d: Vector2 = Vector2(C.NET_X - pl.f * _clap_hand(pl).x, 0.0) - Vector2(pl.x, pl.y)
-				var dist := d.length()
-				var m := Vector2.ZERO
-				if dist > 0.5:
-					m = d * (C.WALK_SPEED * minf(1.0, dist / 6.0) / dist)
+			for side in 2:
+				if _follow(players[side], end_path[side], C.WALK_SPEED):
 					walking = true
-				pl.move_x = m.x
-				pl.move_y = m.y
-				pl.update()
+				players[side].update()
 			if not walking or clap_t > 300:
 				clap_phase = 2
 				clap_t = 0
@@ -857,13 +866,33 @@ func _match_end_tick() -> void:
 			if clap_t > 50:
 				clap_phase = 3
 				clap_t = 0
-				for pl in players:
-					pl.mood = "celebrate" if score.games[pl.side] == 2 else ""
-		_:
+				players[wi].mood = "celebrate"
+				players[1 - wi].mood = ""
+				end_path[1 - wi] = [_exit_point(players[1 - wi])]
+				joy_i = 0
+		3:                                         # the loser leaves, the winner hops for joy
+			_leave_tick(1 - wi)
+			_joy_tick(wi)
+			if auto and clap_t == 60:
+				_snapshot("joy")
+			if (gone.has(1 - wi) and clap_t >= C.JOY_TICKS and players[wi].on_ground()) or clap_t > 600:
+				clap_phase = 4
+				clap_t = 0
+				players[wi].mood = ""
+				end_path[wi] = [_exit_point(players[wi])]
+		4:                                         # the winner leaves
+			for side in 2:
+				_leave_tick(side)
+			if auto and clap_t == 40:
+				_snapshot("leave")
+			if gone.has(wi) or clap_t > 600:
+				clap_phase = 5
+				clap_t = 0
+		_:                                         # the court is empty
 			for pl in players:
 				pl.update()
 	if auto:
-		if (clap_phase == 3 and clap_t > 20) or state_t > 900:
+		if (clap_phase == 5 and clap_t > 20) or state_t > 1500:
 			_finish_auto()
 		return
 	if state_t > 60 and (Input.is_action_just_pressed("start") or Input.is_action_just_pressed("clear")):
@@ -875,6 +904,46 @@ func _clap_hand(pl) -> Vector2:
 	## (dx, z) of the free hand when it meets the other player's over the net.
 	var pts: Array = pl.hold.get("clap", [])
 	return pts[1] if pts.size() > 1 else Vector2(8.0, 31.0)
+
+
+func _exit_point(pl) -> Vector2:
+	## Where a player leaving the court walks to: past the end of its own half, out of sight.
+	return Vector2(C.NET_X + (-C.EXIT_U if pl.x < C.NET_X else C.EXIT_U), C.EXIT_Y)
+
+
+func _leave_tick(side: int) -> void:
+	## A step of walking off the court (end_path); notes who has gone, in order.
+	var pl = players[side]
+	if not _follow(pl, end_path[side], C.WALK_SPEED) and not gone.has(side):
+		gone.append(side)
+	_face_motion(pl)
+	pl.update()
+
+
+func _joy_tick(side: int) -> void:
+	## The winner hops round a few spots on its half, arms up: one hop after another,
+	## a moment on the floor between them (player.gd shows the hops).
+	var pl = players[side]
+	var away := -1.0 if pl.x < C.NET_X else 1.0
+	var spots := [Vector2(30, -14), Vector2(52, 10), Vector2(34, 18), Vector2(56, -8)]
+	var at: Vector2 = spots[joy_i % spots.size()]
+	if Vector2(C.NET_X + away * at.x, at.y).distance_to(Vector2(pl.x, pl.y)) < 10.0:
+		joy_i += 1                                 # near enough: on to the next spot
+		at = spots[joy_i % spots.size()]
+	var m := (Vector2(C.NET_X + away * at.x, at.y) - Vector2(pl.x, pl.y)).normalized() * C.WALK_SPEED
+	pl.move_x = m.x
+	pl.move_y = m.y
+	if pl.on_ground() and pl.land_ticks <= 3 and clap_t > 6:
+		pl.vz = C.HOP_V                            # and up again (no steering in the air)
+	_face_motion(pl)
+	pl.update()
+
+
+func _face_motion(pl) -> void:
+	## Turns a player walking or hopping about to face the way it goes.
+	if absf(pl.vx) > 12.0 and signf(pl.vx) != pl.f:
+		pl.f = signf(pl.vx)
+		_place_sprites()
 
 
 # ------------------------------------------------------------------ test mode
@@ -926,10 +995,14 @@ func _finish_auto() -> void:
 			- (1 if state == St.ENDS else 0)
 	print("changes of ends %d (law 8 expects %d)" % [stats["ends"], ends_expected])
 	var over: bool = score.games[0] == 2 or score.games[1] == 2
+	var left_ok := true
 	if over:
+		var wi := 0 if score.games[0] == 2 else 1
+		left_ok = gone == [1 - wi, wi]
 		print("hands clapped over the net: %s" % ["yes" if stats["clap"] else "NO"])
+		print("left the court, the loser first: %s" % ["yes" if left_ok else "NO %s" % [gone]])
 	var sane: bool = ok and stats["points"] > 0 and stats["shots"] >= stats["points"] \
-			and stats["ends"] == ends_expected and (stats["clap"] or not over)
+			and stats["ends"] == ends_expected and (stats["clap"] or not over) and left_ok
 	print("RESULT %s" % ["OK" if sane else "PROBLEM"])
 	get_tree().quit(0 if sane else 1)
 
@@ -991,9 +1064,10 @@ func _update_view() -> void:
 		var p := C.screen(pl.x, pl.y, pl.z)
 		sprites[side].position = Vector2(roundf(p.x), roundf(p.y))
 	# Layers: the left half is behind the net (3), the right half in front of it (7);
-	# changing ends, it goes by where each player walks, the nearer one on top.
+	# changing ends and after the match (when they turn about), it goes by where each
+	# player is, the nearer one on top.
 	var zs := [3 if players[0].f > 0.0 else 7, 3 if players[1].f > 0.0 else 7]
-	if state == St.ENDS:
+	if state == St.ENDS or state == St.MATCH_END:
 		zs = [_walk_layer(players[0]), _walk_layer(players[1])]
 		if zs[0] == zs[1]:
 			zs[0 if players[0].y > players[1].y else 1] += 1

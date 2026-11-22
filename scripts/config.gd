@@ -41,6 +41,10 @@ const POST_Y := 39.6              # the net posts stand on the doubles sidelines
 const LANE_Y := 43.0              # changing ends, the players walk round the posts out here
 const LANE_X := 6.0               # ... from this far before the net to this far past it
 const WALK_SPEED := 0.7           # walking (changing ends, going to the net), share of SPEED
+const EXIT_U := 136.0             # leaving after the match: out of sight this far from the net
+const EXIT_Y := 10.0              # ... and this far across
+const HOP_V := 100.0              # the winner's hops for joy (a jump is JUMP_V)
+const JOY_TICKS := 150            # ... for at least this long (2.5 s) before leaving
 
 # Drawing: the oblique court of the animations (badminton_rally.py). Court y maps
 # to a floor row: the centre line is row 85, the singles sidelines rows 76 and 94.

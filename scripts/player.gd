@@ -177,7 +177,9 @@ func _set_anim(anim_name: String, frame: int = -1) -> void:
 
 
 func _pick_anim() -> void:
-	if mood != "":
+	if mood == "celebrate" and (not on_ground() or land_ticks > 0):
+		_set_anim(mood, 0 if on_ground() else 1)   # hopping for joy: feet up in the air
+	elif mood != "":
 		_set_anim(mood)
 	elif not stroke.is_empty():
 		var sname: String = stroke["name"]

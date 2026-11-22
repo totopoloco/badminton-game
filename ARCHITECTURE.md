@@ -215,10 +215,15 @@ flips each player's facing `f`, so they turn to the net. Everything on the court
 works from `f`, not from the player's colour, so nothing else needs to know
 which end red is on.
 
-At the end of the match (`MATCH_END`) the winner celebrates, then both walk to
-the net and clap hands over it: the art's `clap` animation raises the free hand
-over the tape, and its position in `rig.json` (`hold.clap`) tells the game where
-each player stands so the hands meet. The result box moves to the top for it.
+At the end of the match (`MATCH_END`) both walk to the net and clap hands over
+it: the art's `clap` animation raises the free hand over the tape, and its
+position in `rig.json` (`hold.clap`) tells the game where each player stands so
+the hands meet. The result box moves to the top for it. Then the loser walks off
+the court past the end of its half, while the winner hops round a few spots on
+its own half (`_joy_tick()`; `player.gd` shows the `celebrate` frame with the
+feet up in the air) and, once the loser has gone, leaves the same way. Walking
+off they face the way they go (`_face_motion()`), and the court stays empty
+until Enter. `_match_end_tick()` steps through these phases (`clap_phase`).
 
 ## One shot, step by step
 
@@ -309,13 +314,14 @@ frame. Back to front:
 
 From this camera the net always covers the player on the left half and is
 always covered by the one on the right, so the order goes by half;
-`_update_view()` sets it every frame. While the players change ends it goes by
-where each one walks instead: behind the net out past the far post, in front of
-it past the near post, and the nearer player on top (4 or 8) when both share a
-layer (the shuttle isn't drawn then). The clap's flash at the end of the match
-is drawn on layer 9, above both players. `_place_sprites()` mirrors a player's
-sprite when they face the other way: red's sheets face right and blue's face
-left (the art script draws blue as a mirror image of red).
+`_update_view()` sets it every frame. While the players change ends, and after
+the match (when they turn about), it goes by where each one is instead: behind
+the net out past the far post, in front of it past the near post, and the nearer
+player on top (4 or 8) when both share a layer (the shuttle isn't drawn then).
+The clap's flash at the end of the match is drawn on layer 9, above both
+players. `_place_sprites()` mirrors a player's sprite when they face the other
+way: red's sheets face right and blue's face left (the art script draws blue as
+a mirror image of red).
 
 A mirror image also swaps the racket hand, so every character has two sheets:
 the racket in the hand nearer the camera (`red_man.png`) and the same poses with
