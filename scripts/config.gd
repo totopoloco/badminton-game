@@ -37,6 +37,7 @@ const RECEIVER_U := 50.0
 const SERVE_Y := 15.0             # ... and from the centre line
 const HOME_U := 42.0              # where the CPU waits
 const LEFT_HANDED := []           # characters who play left-handed, e.g. ["blue_man", "blue_woman"]
+const HARD_RALLY := 10            # a rally this long (shots) makes a hard point, worth a fist
 const POST_Y := 39.6              # the net posts stand on the doubles sidelines
 const LANE_Y := 43.0              # changing ends, the players walk round the posts out here
 const LANE_X := 6.0               # ... from this far before the net to this far past it

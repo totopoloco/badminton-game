@@ -89,9 +89,12 @@ out beyond the baseline or the singles sideline (the inner one), and a shuttle
 that hits the net or doesn't cross it loses the point. The players change ends
 after the first game, after the second when there is a third, and in the third
 game when a side first reaches 8 points (*CHANGE ENDS* shows with the score,
-then both walk round the net posts to the other half). After the last point the
-players walk to the net and clap hands over it; then the loser walks off the
-court, and the winner hops about for joy for a moment before leaving too.
+then both walk round the net posts to the other half). The winner of a point may
+show a strong arm, a pumped fist: some players do it after every point, others
+only after a hard one (a rally of 10 shots or more, or one that saves a game
+point), drawn at random for each match. After the last point the players walk
+to the net and clap hands over it; then the loser walks off the court, and the
+winner hops about for joy for a moment before leaving too.
 Levels: Easy, Normal, Hard.
 Event: men's or women's singles.
 

@@ -215,6 +215,14 @@ flips each player's facing `f`, so they turn to the net. Everything on the court
 works from `f`, not from the player's colour, so nothing else needs to know
 which end red is on.
 
+After each point `_on_land()` sets the players' moods, which choose their
+animation in `player.gd`: the loser looks down (`dejected`); the winner shows the
+strong arm (`fist`: a flexed arm pumped twice) after a game, and after a point
+when that player celebrates every point (`celebrates_all`, drawn at random for
+each player when a match starts) or the point was hard (a rally of `HARD_RALLY`
+shots or more, or a saved game point); otherwise it just gets on with the game.
+Both stand easy while a game's result shows.
+
 At the end of the match (`MATCH_END`) both walk to the net and clap hands over
 it: the art's `clap` animation raises the free hand over the tape, and its
 position in `rig.json` (`hold.clap`) tells the game where each player stands so
@@ -358,6 +366,7 @@ the same web version, plus Linux and Windows, on your own machine (see the
 | How the computer plays | `cpu.gd`, and `LEVELS` in `config.gd` |
 | Pictures | `art/badminton_game_assets.py`, then draw the assets again ([README](README.md#redrawing-the-art-in-aseprite)) |
 | Who plays left-handed | `LEFT_HANDED` in `config.gd` (every character's sheets exist for both hands) |
+| Who celebrates a point, and when | `_on_land()` in `main.gd`; `HARD_RALLY` in `config.gd`; the `fist` poses in the asset script |
 | Sounds | `sfx.gd` |
 | HUD and texts | `_draw_hud()` and the functions after it in `main.gd`; letters in `pixel_font.gd` |
 | Publishing | `.github/workflows/pages.yml` |

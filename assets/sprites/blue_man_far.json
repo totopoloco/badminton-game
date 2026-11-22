@@ -589,11 +589,61 @@
     "h": 61
    },
    "duration": 300
+  },
+  {
+   "filename": "blue_man_far 59.aseprite",
+   "frame": {
+    "x": 3127,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 200
+  },
+  {
+   "filename": "blue_man_far 60.aseprite",
+   "frame": {
+    "x": 3180,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 150
+  },
+  {
+   "filename": "blue_man_far 61.aseprite",
+   "frame": {
+    "x": 3233,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 150
+  },
+  {
+   "filename": "blue_man_far 62.aseprite",
+   "frame": {
+    "x": 3286,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 150
+  },
+  {
+   "filename": "blue_man_far 63.aseprite",
+   "frame": {
+    "x": 3339,
+    "y": 0,
+    "w": 53,
+    "h": 61
+   },
+   "duration": 650
   }
  ],
  "meta": {
   "size": {
-   "w": 3127,
+   "w": 3392,
    "h": 61
   },
   "frameTags": [
@@ -715,6 +765,12 @@
     "name": "clap",
     "from": 56,
     "to": 58,
+    "direction": "forward"
+   },
+   {
+    "name": "fist",
+    "from": 59,
+    "to": 63,
     "direction": "forward"
    }
   ]

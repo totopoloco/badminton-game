@@ -88,6 +88,8 @@ ANIMS = {
     "celebrate":   ([("celebrate_a", 160), ("celebrate_b", 160)], True, None),
     "dejected":    ([("dejected_a", 400), ("dejected_b", 400)], True, None),
     "clap":        ([("clap_up", 200), ("clap", 240), ("clap_up", 300)], False, None),
+    "fist":        ([("fist_up", 200), ("fist_pump", 150), ("fist_up", 150), ("fist_pump", 150),
+                     ("fist_up", 650)], False, None),
 }
 
 # Clapping hands over the net after the match: the free hand goes up beside the
@@ -97,6 +99,15 @@ ANIMS = {
 CLAP_BODY = dict(head=(3, -27), sh=(2, -21), hip=(0, -12), re=(0, -17), rh=(-1, -13), ang=100)
 base.POSES["clap_up"] = base.pose(**CLAP_BODY, fe=(4, -25), fh=(5, -30))
 base.POSES["clap"] = base.pose(**CLAP_BODY, fe=(5, -26), fh=(8, -30), lift=1)
+
+# A point won: the strong arm. The free arm flexed in front, fist up by the face;
+# pumped twice with the body crunching forward; the racket hangs low in front.
+STANCE = dict(fk=(3, -7), fa=(5, -2), bk=(-4, -7), ba=(-6, -2))
+base.POSES["fist_up"] = base.pose(head=(0, -28), sh=(0, -22), hip=(-1, -12), **STANCE,
+                                  re=(1, -16), rh=(4, -14), ang=45, fe=(5, -21), fh=(6, -27))
+base.POSES["fist_pump"] = base.pose(head=(3, -26), sh=(2, -20), hip=(0, -11),
+                                    fk=(4, -6), fa=(6, -2), bk=(-3, -6), ba=(-5, -2),
+                                    re=(3, -15), rh=(6, -13), ang=40, fe=(7, -18), fh=(8, -23))
 SERVES = ("serve", "serve_short")
 SHUTTLE_DIRS = 32
 SHUTTLE_CELL = 13

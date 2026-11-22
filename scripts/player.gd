@@ -24,7 +24,8 @@ var err_scale := 1.0
 var stroke := {}               # empty, or the swing in progress (see rally.gd)
 
 # presentation
-var mood := ""                 # "", "celebrate", "dejected"
+var mood := ""                 # "", "fist", "celebrate", "dejected", "clap"
+var celebrates_all := false    # a fist after every point won, or only after hard ones
 var serve_pose := ""           # "serve" / "serve_short" while holding the shuttle to serve
 var receiving := false
 var no_limits := false         # changing ends or clapping at the net: no half or sideline limits

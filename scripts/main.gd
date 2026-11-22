@@ -110,7 +110,8 @@ var shots_dir := ""
 var shot_count := 0
 var pending_shots: Array = []
 var stats := {"points": 0, "shots": 0, "calls": {}, "strokes": {}, "longest": 0,
-		"max_solves": 0, "max_ticks": 0, "usec": 0, "max_usec": 0, "ends": 0, "clap": false}
+		"max_solves": 0, "max_ticks": 0, "usec": 0, "max_usec": 0, "ends": 0, "clap": false,
+		"won": [0, 0], "fists": [0, 0]}
 var licenses_to := ""                  # --licenses: "-" prints, otherwise a file path
 
 
@@ -405,6 +406,7 @@ func _start_match() -> void:
 	for side in 2:
 		cpus[side] = null if side == human else CPU.new(rng, side, level)
 		players[side].err_scale = 1.0 if side == human else C.LEVELS[level]["err"]
+		players[side].celebrates_all = randf() < 0.5   # global RNG: leaves seeded play alone
 	server = rng.randi() % 2
 	_begin_serve()
 
@@ -727,6 +729,8 @@ func _on_land() -> void:
 		land_dir = 1.0
 	mark_on = false
 	sfx.play("land", -4.0)
+	# a hard point: a long rally, or one that saved the other side's game point
+	var hard: bool = rally.shots >= C.HARD_RALLY or score.game_point(1 - winner)
 	outcome = score.add(winner)
 	ends_due = score.change_ends_after(winner, outcome)
 	server = winner
@@ -734,7 +738,16 @@ func _on_land() -> void:
 		players[side].stroke = {}
 		players[side].move_x = 0.0
 		players[side].move_y = 0.0
-		players[side].mood = "celebrate" if side == winner else "dejected"
+		players[side].mood = "dejected"
+	# The winner: arms up for the match; a strong arm for a game, and for a point if
+	# this player celebrates every point or the point was hard; else back to work.
+	var w = players[winner]
+	if outcome == "match":
+		w.mood = "celebrate"
+	elif outcome == "game" or w.celebrates_all or hard:
+		w.mood = "fist"
+	else:
+		w.mood = ""
 	if human < 0 or winner == human:
 		sfx.play("point", -6.0)
 	else:
@@ -752,9 +765,14 @@ func _on_land() -> void:
 		stats["calls"][res[1]] = stats["calls"].get(res[1], 0) + 1
 		stats["longest"] = maxi(stats["longest"], rally.shots)
 		stats["max_ticks"] = maxi(stats["max_ticks"], rally.tick)
-		print("point %3d  %s  %-5s after %2d shots  score %d-%d  games %d-%d" % [
+		if outcome != "match":                     # the match point gets the arms up
+			stats["won"][winner] += 1
+		if w.mood == "fist":
+			stats["fists"][winner] += 1
+		print("point %3d  %s  %-5s after %2d shots  score %d-%d  games %d-%d%s" % [
 				stats["points"], "RED " if winner == C.RED else "BLUE", res[1], rally.shots,
-				score.points[0], score.points[1], score.games[0], score.games[1]])
+				score.points[0], score.points[1], score.games[0], score.games[1],
+				"  fist" if w.mood == "fist" else ""])
 		if stats["points"] % 5 == 1:
 			_snapshot("point")
 
@@ -806,6 +824,8 @@ func _walk_tick() -> void:
 
 func _game_end_tick() -> void:
 	for pl in players:
+		if state_t == 1:
+			pl.mood = ""                           # the fist is over: both stand easy
 		pl.update()
 	if state_t > 150:
 		score.new_game()
@@ -994,6 +1014,11 @@ func _finish_auto() -> void:
 	var ends_expected := score.ends_changes_so_far() - (1 if ends_due else 0) \
 			- (1 if state == St.ENDS else 0)
 	print("changes of ends %d (law 8 expects %d)" % [stats["ends"], ends_expected])
+	var fists: Array = []
+	for side in 2:
+		fists.append("%s %d of %d (%s)" % ["red" if side == C.RED else "blue", stats["fists"][side],
+				stats["won"][side], "every point" if players[side].celebrates_all else "hard points"])
+	print("fists after points won: %s" % ", ".join(fists))
 	var over: bool = score.games[0] == 2 or score.games[1] == 2
 	var left_ok := true
 	if over:
