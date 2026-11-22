@@ -36,6 +36,7 @@ const SERVER_U := 44.0            # serving and receiving spots, from the net
 const RECEIVER_U := 50.0
 const SERVE_Y := 15.0             # ... and from the centre line
 const HOME_U := 42.0              # where the CPU waits
+const LEFT_HANDED := []           # characters who play left-handed, e.g. ["blue_man", "blue_woman"]
 
 # Drawing: the oblique court of the animations (badminton_rally.py). Court y maps
 # to a floor row: the centre line is row 85, the singles sidelines rows 76 and 94.

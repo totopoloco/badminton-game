@@ -10,7 +10,11 @@ looks like them. Writes into the Godot project:
 
   assets/sprites/<who>.png + .json   one sheet per player (red_man, red_woman,
                                      blue_man, blue_woman), one Aseprite tag per
-                                     animation (idle, run, overhead, lift, ...)
+                                     animation (idle, run, overhead, lift, ...),
+                                     racket in the hand nearer the camera
+  assets/sprites/<who>_far.png + .json  the same with the racket in the far hand
+                                     (the game mirrors it for the other end of
+                                     the court, so nobody changes hands)
   assets/sprites/shuttle.png + .json the shuttle in 32 flight directions
   assets/sprites/crowd.png + .json   the crowd in the stands: "idle" and "cheer" tags
   assets/court/background.png        hall, stands, sponsor boards, floor, court lines,
@@ -273,10 +277,72 @@ def face(who):
     return db.PEOPLE[who]["face"]
 
 
-def render(who, pose_name) -> Raster:
-    """A player as drawn in the doubles animation; blue faces left (mirrored)."""
-    r = db.render_person(who, pose_name)
+HANDS = ("near", "far")         # sheet variants: which hand holds the racket, seen from the camera
+
+
+def sheet_name(who, hand):
+    return who if hand == "near" else f"{who}_far"
+
+
+def render(who, pose_name, hand="near") -> Raster:
+    """A player as drawn in the doubles animation; blue faces left (mirrored).
+
+    hand "near": the racket in the hand nearer the camera, as in the animations
+    (the right hand of a player facing right). "far": the same pose with the
+    racket in the other hand. Mirroring a picture swaps the hand as well, so the
+    game shows the far-hand sheet mirrored for a player at the other end.
+    """
+    r = db.render_person(who, pose_name) if hand == "near" else render_far_hand(who, pose_name)
     return r.mirrored() if face(who) < 0 else r
+
+
+def render_far_hand(who, pose_name) -> Raster:
+    """db.render_person with the racket in the far hand.
+
+    Same pose and points, so the rig's contact and hold points hold for both
+    sheets. Only what covers what changes: the racket and the arm holding it go
+    behind the body, shaded like a far limb, and the free arm comes to the front
+    with the contour the racket arm has in the near-hand picture.
+    """
+    spec = db.PEOPLE[who]
+    col, s = spec["colors"], spec["scale"]
+    p = db.scaled_pose(pose_name, s)
+    r = Raster()
+    base.draw_racket(r, p)
+    base.draw_arm(r, p["sh"], p["re"], p["rh"], col, shade=True)               # racket arm, far
+    base.draw_leg(r, p, p["bk"], p["ba"], col, shade=True)                      # far leg
+    r.capsule(p["sh"], base.lerp(p["sh"], p["hip"], 0.8), 2.5 if s == 1 else 2.3, col["shirt"][0])
+    back = (p["sh"][0] - 1.6, p["sh"][1] + 1)
+    r.capsule(back, (p["hip"][0] - 1.6, p["hip"][1] - 2), 0.9, col["shirt"][1])
+    r.capsule((p["hip"][0], p["hip"][1] - 1.5), p["hip"], 2.6, col["shorts"][0])
+    base.draw_leg(r, p, p["fk"], p["fa"], col, shade=False)                     # near leg
+    if spec.get("skirt"):
+        db.draw_skirt(r, p, spec["skirt"])
+    neck_top = (p["head"][0] - 0.5, p["head"][1] + 2.5)
+    r.capsule(neck_top, p["sh"], 0.8, col["skin"][1])
+    base.draw_head(r, p["head"], col)
+    if spec.get("ponytail"):
+        db.draw_ponytail(r, p["head"], col["hair"], pose_name.startswith(db.FLOWING))
+    arm = Raster()                                                              # free arm in front,
+    base.draw_arm(arm, p["sh"], p["fe"], p["fh"], col, shade=False)            # with a contour
+    for (x, y), c in list(r.px.items()):
+        if (x, y) not in arm.px and any(n in arm.px for n in
+                                        ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))):
+            r.px[(x, y)] = base.darken(c, 0.62)
+    for k, c in arm.px.items():
+        r.set(k, c)
+    r.outline(base.OUT, skip=(base.RACKET_STRINGS,))
+    if p["smear"]:                                                              # swing trail, as there
+        sm = p["smear"]
+        pivot = (sm["pivot"][0] * s, sm["pivot"][1] * s - p["lift"])
+        for k in range(60, -1, -1):
+            t = k / 60
+            a = sm["a0"] + (sm["a1"] - sm["a0"]) * t
+            alpha = (0x22, 0x3a, 0x5c)[min(2, int(t * 3))]
+            for rr in (sm["r"] - 3.0, sm["r"] - 2.0, sm["r"] - 1.0, sm["r"], sm["r"] + 0.8):
+                x, y = base.polar(pivot, a, rr)
+                r.put(x, y, f"#ffffff{alpha:02x}", only_empty=True)
+    return r
 
 
 def frame_list():
@@ -288,10 +354,11 @@ def cell_geometry():
     """One cell size for every player sheet, root at a shared anchor (ax, ay)."""
     xs, ys = [], []
     for who in CHARACTERS:
-        for _, pose, _ in frame_list():
-            for x, y in render(who, pose).px:
-                xs.append(x)
-                ys.append(y)
+        for hand in HANDS:
+            for _, pose, _ in frame_list():
+                for x, y in render(who, pose, hand).px:
+                    xs.append(x)
+                    ys.append(y)
     ax = max(-min(xs), max(xs)) + 1           # symmetric, so red and blue share the anchor
     ay = -min(ys) + 1
     return 2 * ax + 1, ay + max(ys) + 2, ax, ay
@@ -311,7 +378,8 @@ def rig(cell):
     cw, ch, ax, ay = cell
     out = {
         "comment": "Generated by badminton_game_assets.py. Points are (dx, z) for a player "
-                   "facing right: dx along the court from the feet, z height above the floor.",
+                   "facing right: dx along the court from the feet, z height above the floor. "
+                   "They hold for both sheets of a player (racket in the near or far hand).",
         "cell": {"w": cw, "h": ch, "ax": ax, "ay": ay},
         "play_depth": PLAY_D,
         "anims": {},
@@ -325,8 +393,11 @@ def rig(cell):
                               "lift": [base.POSES[p]["lift"] for p, _ in frames]}
     for who in CHARACTERS:
         spec = db.PEOPLE[who]
+        far = sheet_name(who, "far")
         c = {"face": spec["face"], "sheet": f"res://assets/sprites/{who}.png",
-             "data": f"res://assets/sprites/{who}.json", "contact": {}, "hold": {}}
+             "data": f"res://assets/sprites/{who}.json",
+             "sheet_far": f"res://assets/sprites/{far}.png",
+             "data_far": f"res://assets/sprites/{far}.json", "contact": {}, "hold": {}}
         for name, (frames, _, contact) in ANIMS.items():
             if contact is not None:
                 c["contact"][name] = local(who, frames[contact][0], "racket")
@@ -352,27 +423,29 @@ def build_plan(game_dir: str) -> list[Call]:
             calls.append(Call(tool, {"filename": sprite, **args}))
         return add
 
-    # -- players: one sheet each, one tag per animation -------------------------
+    # -- players: two sheets each (racket in the near / far hand), one tag per animation
     frames = frame_list()
     for who in CHARACTERS:
-        spr = os.path.join(src, f"{who}.aseprite")
-        add = adder(spr)
-        calls.append(Call("create_canvas", {"width": cw, "height": ch, "filename": spr}))
-        add("rename_layer", layer_name="Layer 1", new_name="player")
-        add("add_frames", count=len(frames) - 1, duration_ms=100)
-        add("set_frame_duration_all", duration_ms=100)
-        for i, (_, pose, ms) in enumerate(frames):
-            x, y, rows, legend = render(who, pose).to_rows(ax, ay)
-            add("draw_rows", layer_name="player", frame_index=i + 1, x=x, y=y, rows=rows, legend=legend)
-            if ms != 100:
-                add("set_frame_duration", frame_index=i + 1, duration_ms=ms)
-        start = 1
-        for name, (fr, _, _) in ANIMS.items():
-            add("set_tag", name=name, from_frame=start, to_frame=start + len(fr) - 1, direction="forward")
-            start += len(fr)
-        add("export_spritesheet", output_filename=os.path.join(sprites, f"{who}.png"),
-            sheet_type="horizontal", data_filename=os.path.join(sprites, f"{who}.json"),
-            data_format="json-array", list_tags=True)
+        for hand in HANDS:
+            sheet = sheet_name(who, hand)
+            spr = os.path.join(src, f"{sheet}.aseprite")
+            add = adder(spr)
+            calls.append(Call("create_canvas", {"width": cw, "height": ch, "filename": spr}))
+            add("rename_layer", layer_name="Layer 1", new_name="player")
+            add("add_frames", count=len(frames) - 1, duration_ms=100)
+            add("set_frame_duration_all", duration_ms=100)
+            for i, (_, pose, ms) in enumerate(frames):
+                x, y, rows, legend = render(who, pose, hand).to_rows(ax, ay)
+                add("draw_rows", layer_name="player", frame_index=i + 1, x=x, y=y, rows=rows, legend=legend)
+                if ms != 100:
+                    add("set_frame_duration", frame_index=i + 1, duration_ms=ms)
+            start = 1
+            for name, (fr, _, _) in ANIMS.items():
+                add("set_tag", name=name, from_frame=start, to_frame=start + len(fr) - 1, direction="forward")
+                start += len(fr)
+            add("export_spritesheet", output_filename=os.path.join(sprites, f"{sheet}.png"),
+                sheet_type="horizontal", data_filename=os.path.join(sprites, f"{sheet}.json"),
+                data_format="json-array", list_tags=True)
 
     # -- shuttle: cork pointing in 32 directions (screen space, y down) ------------
     spr = os.path.join(src, "shuttle.aseprite")

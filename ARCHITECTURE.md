@@ -301,7 +301,14 @@ From this camera the net always covers the player on the left half and is
 always covered by the one on the right, so the order goes by half.
 `_place_sprites()` sets it, and mirrors a player's sprite when they play from
 the other end: red's sheets face right and blue's face left (the art script
-draws blue as a mirror image of the right-handed red player).
+draws blue as a mirror image of red).
+
+A mirror image also swaps the racket hand, so every character has two sheets:
+the racket in the hand nearer the camera (`red_man.png`) and the same poses with
+the racket in the far hand (`red_man_far.png`). `_place_sprites()` shows the one
+that keeps the player's hand: a right-hander holds the racket in the near hand
+when facing right and in the far hand when facing left. Everybody is
+right-handed unless listed in `LEFT_HANDED` in `config.gd`.
 
 ## Build and publish
 
@@ -330,6 +337,7 @@ the same web version, plus Linux and Windows, on your own machine (see the
 | Rules and calls | `decide()` in `rally.gd`, and `score.gd` |
 | How the computer plays | `cpu.gd`, and `LEVELS` in `config.gd` |
 | Pictures | `art/badminton_game_assets.py`, then draw the assets again ([README](README.md#redrawing-the-art-in-aseprite)) |
+| Who plays left-handed | `LEFT_HANDED` in `config.gd` (every character's sheets exist for both hands) |
 | Sounds | `sfx.gd` |
 | HUD and texts | `_draw_hud()` and the functions after it in `main.gd`; letters in `pixel_font.gd` |
 | Publishing | `.github/workflows/pages.yml` |

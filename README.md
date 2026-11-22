@@ -137,7 +137,7 @@ seats and colours are next to them.
 | `scripts/player.gd`, `cpu.gd` | player movement and animation; the computer player |
 | `scripts/config.gd` | all tunable numbers: shots, speeds, CPU levels |
 | `scripts/score.gd`, `sheet.gd`, `pixel_font.gd`, `sfx.gd` | scoring, Aseprite sheet loader, 3×5 font, synthesized sounds (crowd included) |
-| `assets/` | sprite sheets + Aseprite JSON (players, shuttle, crowd), court layers, `rig.json` (racket contact points, where the crowd goes) |
+| `assets/` | sprite sheets + Aseprite JSON (players, each with the racket in the near hand and, `_far`, in the far hand; shuttle; crowd), court layers, `rig.json` (racket contact points, where the crowd goes) |
 | `art/` | the drawing scripts (Python, through aseprite-mcp or Pillow) |
 | `export_presets.cfg` | build settings for the web, Linux and Windows versions |
 | `.github/workflows/pages.yml` | builds the web version and publishes it on GitHub Pages and itch.io |

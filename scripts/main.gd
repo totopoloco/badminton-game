@@ -42,12 +42,14 @@ const LEVEL_NAMES := ["EASY", "NORMAL", "HARD"]
 const FADE_TICKS := 24               # the screen fades back in after the players change ends
 
 var rig: Dictionary = {}
-var sheets := {}
+var sheets := {}                    # character -> sheet with the racket in the near hand
+var sheets_far := {}                # character -> the same with the racket in the far hand
 var shuttle_sheet
 var cell := Vector2(53, 61)
 var anchor := Vector2(26, 55)
 
 var sprites: Array = []
+var shown: Array = [null, null]     # the sheet each side's sprite shows (_place_sprites())
 var crowd_sheet = null              # the stands (optional: the game runs without them)
 var crowd_sprite: Sprite2D
 var crowd_cheer := 0                # ticks the crowd keeps cheering
@@ -215,6 +217,10 @@ func _load_assets() -> bool:
 		if not sh.open(ch["sheet"], ch["data"]):
 			return false
 		sheets[who] = sh
+		if ch.has("sheet_far"):         # without it the near-hand sheet is mirrored
+			var far = Sheet.new()
+			if far.open(ch["sheet_far"], ch["data_far"]):
+				sheets_far[who] = far
 	shuttle_sheet = Sheet.new()
 	if not shuttle_sheet.open("res://assets/sprites/shuttle.png", "res://assets/sprites/shuttle.json"):
 		return false
@@ -271,19 +277,25 @@ func _make_players() -> void:
 		var pl = PlayerT.new()
 		pl.setup(side, names[side], rig)
 		players.append(pl)
-		sprites[side].texture = sheets[names[side]].texture
 	_place_sprites()
 
 
 func _place_sprites() -> void:
-	## Layer and mirroring of each player's sprite for the half it plays on: left
-	## half behind the net (3), right half in front (7). Red's sheets face right and
-	## blue's face left (the art script mirrors blue), so a player on the other
-	## half is mirrored, and its anchor with it.
+	## Layer, sheet and mirroring of each player's sprite for the half it plays on:
+	## left half behind the net (3), right half in front (7). Red's sheets face right
+	## and blue's face left (the art script mirrors blue), so a player on the other
+	## half is mirrored, and its anchor with it. Mirroring swaps the racket hand too,
+	## so each character has two sheets, racket in the hand nearer the camera or in
+	## the far hand, and the one shown keeps the player's hand: a right-hander holds
+	## it in the near hand facing right and in the far hand facing left.
 	var w: float = rig["cell"]["w"]
 	for side in 2:
 		var pl = players[side]
-		var flip: bool = pl.f != (1.0 if side == C.RED else -1.0)
+		var right_handed: bool = not C.LEFT_HANDED.has(pl.who)
+		var near: bool = (pl.f > 0.0) == right_handed
+		shown[side] = sheets_far[pl.who] if not near and sheets_far.has(pl.who) else sheets[pl.who]
+		sprites[side].texture = shown[side].texture
+		var flip: bool = pl.f != float(rig["characters"][pl.who]["face"])
 		sprites[side].z_index = 3 if pl.f > 0.0 else 7
 		sprites[side].flip_h = flip
 		sprites[side].offset = Vector2(-(w - 1.0 - anchor.x) if flip else -anchor.x, -anchor.y)
@@ -852,7 +864,7 @@ func _update_view() -> void:
 		return
 	for side in 2:
 		var pl = players[side]
-		var sh = sheets[pl.who]
+		var sh = shown[side]
 		var loop: bool = rig["anims"].get(pl.anim, {}).get("loop", false)
 		var idx: int = sh.frame_index(pl.anim, pl.anim_frame, pl.anim_time, loop)
 		sprites[side].region_rect = sh.rects[idx]
